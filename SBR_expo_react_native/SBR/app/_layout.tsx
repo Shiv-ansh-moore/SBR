@@ -1,27 +1,42 @@
-import { Redirect, Stack } from "expo-router";
-import { useContext } from "react";
+// app/_layout.tsx  ─ root-level layout
+import { Stack, useRouter } from "expo-router";
+import { useContext, useEffect } from "react";
 import { Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import AuthProvider, { AuthContext } from "../providers/AuthProvider";
-import "./global.css";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { session, loading, isUser } = useContext(AuthContext);
+  const router = useRouter();
+
+  // Navigate only when the auth state actually changes
+  useEffect(() => {
+    if (loading) return;
+
+    if (!session) {
+      router.replace("/(auth)");
+    } else if (!isUser) {
+      router.replace("/(makeUser)");
+    } else {
+      router.replace("/(tabs)");
+    }
+  }, [loading, session, isUser, router]);
+
+  if (loading) return <Text>Loading...</Text>;
+
+  // Once we’ve routed, render the navigation tree
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
-  function AuthGate({ children }: { children: React.ReactNode }) {
-    const { session, loading, isUser } = useContext(AuthContext);
-    if (loading) return <Text>Loading...</Text>;
-    if (!session) return <Redirect href={"/(auth)"} />;
-    if (!isUser) return <Redirect href={"/(makeUser)"} />;
-    return <Redirect href={"/(tabs)"} />;
-  }
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <AuthProvider>
         <AuthGate>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(makeUser)" options={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(makeUser)" />
           </Stack>
         </AuthGate>
       </AuthProvider>
