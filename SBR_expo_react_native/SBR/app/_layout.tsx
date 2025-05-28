@@ -9,7 +9,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isUser } = useContext(AuthContext);
   const router = useRouter();
 
-  // Navigate only when the auth state actually changes
   useEffect(() => {
     if (loading) return;
 
@@ -24,7 +23,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (loading) return <Text>Loading...</Text>;
 
-  // Once we’ve routed, render the navigation tree
   return <>{children}</>;
 }
 

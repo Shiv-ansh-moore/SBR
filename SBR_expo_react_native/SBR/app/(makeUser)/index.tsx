@@ -1,10 +1,10 @@
 import { useContext, useState } from "react";
-import { Button, TextInput, View } from "react-native";
+import { Alert, Button, TextInput, View } from "react-native";
 import { supabase } from "../../lib/supabaseClient";
 import { AuthContext } from "../../providers/AuthProvider";
 
 const index = () => {
-  const { session, loading, isUser, setIsUser } = useContext(AuthContext);
+  const { session, setIsUser } = useContext(AuthContext);
 
   const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
@@ -12,7 +12,7 @@ const index = () => {
   return (
     <View>
       <TextInput
-        placeholder="Enter your username"
+        placeholder="Enter a unique username"
         autoCapitalize="none"
         autoCorrect={false}
         textContentType="username"
@@ -31,10 +31,13 @@ const index = () => {
           const { error } = await supabase.from("users").insert({
             id: session?.user.id,
             username: username,
-            display_name: nickname,
+            nickname: nickname,
           });
           if (error) {
             console.error("Error creating user:", error);
+            if (error.code === "23505") {
+              Alert.alert("Username already in use");
+            }
           } else {
             console.log("User created successfully!");
             setIsUser(true);
