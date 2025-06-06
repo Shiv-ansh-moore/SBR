@@ -5,49 +5,47 @@ import { AuthContext } from "../../providers/AuthProvider";
 
 const Picture = () => {
   const context = useContext(AuthContext);
-  const [imagePath, setImagePath] = useState<string | null>(null);
   const [imageLink, setImageLink] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchImagePath = async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("profile_pic")
-        .eq("id", context.session?.user.id);
-      if (data) {
-        setImagePath(data[0].profile_pic);
-      }
-      if (error) {
-        console.log("error fetching profile pic");
-      }
-    };
-    fetchImagePath();
-  }, [context.session]);
-
-  useEffect(() => {
     const fetchImage = async () => {
-      if (imagePath) {
-        console.log(imagePath)
-        const { data, error } = await supabase.storage
-          .from("profilepic")
-          .createSignedUrl(imagePath, 500);
-        if (data) {
-          setImageLink(data.signedUrl);
+      if (context.session?.user.id) {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("profile_pic")
+          .eq("id", context.session.user.id)
+          .single();
+
+        if (userError) {
+          console.log("error fetching profile pic path");
+          return;
         }
-        if (error) {
-          console.log(error);
+
+        const imagePath = userData?.profile_pic;
+
+        // 2. If a path exists, create the signed URL.
+        if (imagePath) {
+          const { data: urlData, error: urlError } = await supabase.storage
+            .from("profilepic")
+            .createSignedUrl(imagePath, 500);
+          if (urlData) {
+            setImageLink(urlData.signedUrl);
+          }
+          if (urlError) {
+            console.log(urlError);
+          }
+        } else {
+          setImageLink(null);
         }
-      } else {
-        console.log("imageLink is null, cannot create signed URL");
       }
     };
+
     fetchImage();
-  }, [imagePath]);
+  }, [context.session]);
 
   return (
     <View>
       <Image
-        // If imageLink exists, use it as the source. Otherwise, use the default image.
         source={
           imageLink
             ? { uri: imageLink }
