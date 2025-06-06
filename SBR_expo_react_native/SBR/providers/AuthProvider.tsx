@@ -1,6 +1,6 @@
-import { createContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "../lib/supabaseClient";
 import { Session } from "@supabase/supabase-js";
+import { createContext, ReactNode, useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -30,6 +30,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true);
       const { data, error } = await supabase.auth.getSession();
       setSession(data.session);
+      if (error) {
+        console.log(error);
+      }
     }
     fetchSession();
     supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -46,6 +49,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         .select("id")
         .eq("id", session.user.id)
         .limit(1);
+      if (error) {
+        console.log(error);
+      }
       if (Array.isArray(data) && data.length > 0) {
         setIsUser(true);
         console.log("User exists in the database.");

@@ -1,11 +1,10 @@
 import PictureWithEdit from "@/components/profilePicture/PictureWithEdit";
 import React from "react";
-import { Button, View, Text } from "react-native";
-import { supabase } from "../../lib/supabaseClient";
+import { StyleSheet, Text, View } from "react-native";
 
 const profile = () => {
   return (
-    <View>
+    <View style={styles.container}>
       <PictureWithEdit />
       {/* <Button
         title="Sign Out"
@@ -22,3 +21,8 @@ const profile = () => {
   );
 };
 export default profile;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

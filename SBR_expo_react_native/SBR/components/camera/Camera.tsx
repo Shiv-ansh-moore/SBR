@@ -49,7 +49,6 @@ const Camera = ({ setShowCamera }: CameraProps) => {
     );
   }
 
-  // Otherwise, show the camera
   return (
     <CameraView
       style={styles.camera}
