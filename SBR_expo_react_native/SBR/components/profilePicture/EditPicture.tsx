@@ -1,14 +1,18 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import CameraModal from "../camera/CameraModal";
 
 interface EditPictureProps {
   setIsMenuVisible: Dispatch<SetStateAction<boolean>>; // Correct type
 }
 
 const EditPicture = ({ setIsMenuVisible }: EditPictureProps) => {
+  const [showCamera, setShowCamera] = useState(false);
+
   return (
     <View>
-      <TouchableOpacity>
+      {showCamera && <CameraModal setShowCamera={setShowCamera} />}
+      <TouchableOpacity onPress={() => setShowCamera(true)}>
         <Text>Camera</Text>
       </TouchableOpacity>
       <TouchableOpacity>

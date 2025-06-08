@@ -1,21 +1,15 @@
 // chats.tsx
-import Camera from "@/components/camera/Camera";
-import { View, StyleSheet } from "react-native"; // Import StyleSheet
+import { StyleSheet, Text, View } from "react-native"; // Import StyleSheet
 
 const chats = () => {
   return (
-    // Apply the style to the container View
-    <View style={styles.container}>
-      <Camera />
+    <View>
+      <Text>Chats</Text>
     </View>
   );
 };
 
 // Add styles to make the container fill the screen
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+const styles = StyleSheet.create({});
 
 export default chats;

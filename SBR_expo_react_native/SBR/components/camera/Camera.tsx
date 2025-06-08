@@ -5,13 +5,13 @@ import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ImagePreview from "./ImagePreview"; // Import the new component
 
 interface CameraProps {
-  setShowCamera?: (show: boolean) => void;
+  setShowCamera: (show: boolean) => void;
+  setUri: (uri: string | null) => void;
 }
 
-const Camera = ({ setShowCamera }: CameraProps) => {
+const Camera = ({ setShowCamera, setUri }: CameraProps) => {
   const [facing, setFacing] = useState<CameraType>("front");
   const [permission, requestPermission] = useCameraPermissions();
-  const [uri, setUri] = useState<string | null>(null);
   const camera = useRef<CameraView>(null);
 
   if (!permission) {
@@ -40,14 +40,6 @@ const Camera = ({ setShowCamera }: CameraProps) => {
   };
 
   // If a picture has been taken, show the preview
-  if (uri) {
-    return (
-      <ImagePreview
-        uri={uri}
-        onRetake={() => setUri(null)}
-      />
-    );
-  }
 
   return (
     <CameraView
