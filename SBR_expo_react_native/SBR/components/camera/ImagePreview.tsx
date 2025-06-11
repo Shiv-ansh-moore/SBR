@@ -4,11 +4,10 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 interface ImagePreviewProps {
   uri: string;
   onRetake: () => void;
+  onUsePicture: (uri: string) => void;
 }
 
-const ImagePreview = ({ uri, onRetake }: ImagePreviewProps) => {
-  const onUsePicture = () => {};
-
+const ImagePreview = ({ uri, onRetake, onUsePicture }: ImagePreviewProps) => {
   return (
     <View style={styles.container}>
       <Image source={{ uri }} style={styles.previewImage} />
@@ -16,7 +15,10 @@ const ImagePreview = ({ uri, onRetake }: ImagePreviewProps) => {
         <TouchableOpacity style={styles.button} onPress={onRetake}>
           <Text style={styles.text}>Retake</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={onUsePicture}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => onUsePicture(uri)}
+        >
           <Text style={styles.text}>Use Picture</Text>
         </TouchableOpacity>
       </View>

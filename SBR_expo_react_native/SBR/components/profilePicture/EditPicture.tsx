@@ -9,9 +9,13 @@ interface EditPictureProps {
 const EditPicture = ({ setIsMenuVisible }: EditPictureProps) => {
   const [showCamera, setShowCamera] = useState(false);
 
+  const onUsePicture = (uri: string) => {
+    console.log(uri);
+  };
+
   return (
     <View>
-      {showCamera && <CameraModal setShowCamera={setShowCamera} />}
+      {showCamera && <CameraModal setShowCamera={setShowCamera} onUsePicture={onUsePicture} />}
       <TouchableOpacity onPress={() => setShowCamera(true)}>
         <Text>Camera</Text>
       </TouchableOpacity>
