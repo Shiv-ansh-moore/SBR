@@ -7,14 +7,17 @@ import { AuthContext } from "../../providers/AuthProvider";
 import CameraModal from "../camera/CameraModal";
 
 interface EditPictureProps {
-  setIsMenuVisible: Dispatch<SetStateAction<boolean>>; // Correct type
+  setIsMenuVisible: Dispatch<SetStateAction<boolean>>;
+  setIsPic: Dispatch<SetStateAction<boolean>>; // Correct type
 }
 
-const EditPicture = ({ setIsMenuVisible }: EditPictureProps) => {
+const EditPicture = ({ setIsMenuVisible, setIsPic}: EditPictureProps) => {
   const [showCamera, setShowCamera] = useState(false);
   const context = useContext(AuthContext);
 
   const onUsePicture = async (uri: string) => {
+    setIsPic(false)
+    setShowCamera(false)
     if (context.session?.user.id) {
       // Uploads file
       // * Might refactor to use helper function instead
@@ -37,7 +40,7 @@ const EditPicture = ({ setIsMenuVisible }: EditPictureProps) => {
         .update({ profile_pic: filePath })
         .eq("id", context.session.user.id);
     }
-    setShowCamera(false);
+    setIsPic(true)
   };
 
   return (

@@ -1,58 +1,85 @@
-import { useContext, useEffect, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { ActivityIndicator, Image, StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabaseClient";
 import { AuthContext } from "../../providers/AuthProvider";
 
-const Picture = () => {
+interface PictureProps {
+  setIsPic: Dispatch<SetStateAction<boolean>>;
+  isPic: boolean;
+}
+
+const Picture = ({ setIsPic, isPic }: PictureProps) => {
   const context = useContext(AuthContext);
   const [imageLink, setImageLink] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchImage = async () => {
-      if (context.session?.user.id) {
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("profile_pic")
-          .eq("id", context.session.user.id)
-          .single();
+      setLoading(true);
+      if (isPic) {
+        if (context.session?.user.id) {
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("profile_pic")
+            .eq("id", context.session.user.id)
+            .single();
 
-        if (userError) {
-          console.log("error fetching profile pic path");
-          return;
-        }
-
-        const imagePath = userData?.profile_pic;
-
-        // 2. If a path exists, create the signed URL.
-        if (imagePath) {
-          const { data: urlData, error: urlError } = await supabase.storage
-            .from("profilepic")
-            .createSignedUrl(imagePath, 500);
-          if (urlData) {
-            setImageLink(urlData.signedUrl);
+          if (userError) {
+            console.log("error fetching profile pic path");
+            return;
           }
-          if (urlError) {
-            console.log(urlError);
+
+          const imagePath = userData?.profile_pic;
+
+          // 2. If a path exists, create the signed URL.
+          if (imagePath) {
+            const { data: urlData, error: urlError } = await supabase.storage
+              .from("profilepic")
+              .createSignedUrl(imagePath, 500);
+            if (urlData) {
+              setImageLink(urlData.signedUrl);
+            }
+            if (urlError) {
+              console.log(urlError);
+            }
+          } else {
+            setImageLink(null);
+            setLoading(false);
           }
-        } else {
-          setImageLink(null);
         }
       }
     };
-
     fetchImage();
-  }, [context.session]);
+  }, [context.session, isPic]);
+
+  const showIndicator = loading || !isPic;
+  console.log(showIndicator);
 
   return (
     <View>
-      <Image
-        source={
-          imageLink
-            ? { uri: imageLink }
-            : require("../../assets/images/profilePic/defaultProfile.jpg")
-        }
-        style={styles.image}
-      />
+      {showIndicator && (
+        <ActivityIndicator
+          style={[styles.image, { position: "absolute", zIndex: 1 }]}
+        />
+      )}
+      {imageLink ? (
+        <Image
+          source={{ uri: imageLink }}
+          style={styles.image}
+          onLoad={() => setLoading(false)}
+        />
+      ) : (
+        <Image
+          source={require("../../assets/images/profilePic/defaultProfile.jpg")}
+          style={styles.image}
+        />
+      )}
     </View>
   );
 };
@@ -64,5 +91,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    backgroundColor: "#ffffffff",
   },
 });

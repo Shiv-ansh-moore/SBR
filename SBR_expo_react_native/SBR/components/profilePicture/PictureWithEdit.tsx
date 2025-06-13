@@ -5,18 +5,21 @@ import Picture from "./Picture"; // Assuming Picture.js defines a component with
 
 export default function PictureWithEdit() {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isPic, setIsPic] = useState(true);
 
   return (
     // Add 'styles.container' to this View
     <View style={styles.container}>
-      <Picture />
+      <Picture setIsPic={setIsPic} isPic={isPic} />
       <TouchableOpacity onPress={() => setIsMenuVisible(true)}>
         <Image
           source={require("../../assets/images/profilePic/edit.png")}
           style={styles.editImage}
         />
       </TouchableOpacity>
-      {isMenuVisible && <EditPicture setIsMenuVisible={setIsMenuVisible} />}
+      {isMenuVisible && (
+        <EditPicture setIsMenuVisible={setIsMenuVisible} setIsPic={setIsPic} />
+      )}
     </View>
   );
 }
@@ -31,5 +34,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
+    zIndex: 2,
   },
 });
