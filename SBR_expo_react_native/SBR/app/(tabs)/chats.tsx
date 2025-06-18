@@ -1,10 +1,12 @@
 // chats.tsx
+import Picture from "@/components/profilePicture/Picture";
 import { StyleSheet, Text, View } from "react-native"; // Import StyleSheet
 
 const chats = () => {
   return (
     <View>
       <Text>Chats</Text>
+      <Picture isPic={true} />
     </View>
   );
 };

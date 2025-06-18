@@ -10,7 +10,7 @@ export default function PictureWithEdit() {
   return (
     // Add 'styles.container' to this View
     <View style={styles.container}>
-      <Picture setIsPic={setIsPic} isPic={isPic} />
+      <Picture isPic={isPic} />
       <TouchableOpacity onPress={() => setIsMenuVisible(true)}>
         <Image
           source={require("../../assets/images/profilePic/edit.png")}

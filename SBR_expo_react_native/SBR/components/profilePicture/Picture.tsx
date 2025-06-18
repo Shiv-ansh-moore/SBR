@@ -10,11 +10,10 @@ import { supabase } from "../../lib/supabaseClient";
 import { AuthContext } from "../../providers/AuthProvider";
 
 interface PictureProps {
-  setIsPic: Dispatch<SetStateAction<boolean>>;
   isPic: boolean;
 }
 
-const Picture = ({ setIsPic, isPic }: PictureProps) => {
+const Picture = ({ isPic }: PictureProps) => {
   const context = useContext(AuthContext);
   const [imageLink, setImageLink] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -59,8 +58,7 @@ const Picture = ({ setIsPic, isPic }: PictureProps) => {
   }, [context.session, isPic]);
 
   const showIndicator = loading || !isPic;
-  console.log(showIndicator);
-
+  
   return (
     <View>
       {showIndicator && (
