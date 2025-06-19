@@ -1,12 +1,18 @@
 // chats.tsx
-import Picture from "@/components/profilePicture/Picture";
-import { StyleSheet, Text, View } from "react-native"; // Import StyleSheet
+import AddFriends from "@/components/Social/Friends/AddFriends";
+import { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Import StyleSheet
 
 const chats = () => {
+  const [showAddFriends, setShowAddFriends] = useState<boolean>(false);
+
   return (
     <View>
+      {showAddFriends && <AddFriends setShowAddFriends={setShowAddFriends} />}
       <Text>Chats</Text>
-      <Picture isPic={true} />
+      <TouchableOpacity onPress={() => setShowAddFriends(true)}>
+        <Text>Add Friends</Text>
+      </TouchableOpacity>
     </View>
   );
 };

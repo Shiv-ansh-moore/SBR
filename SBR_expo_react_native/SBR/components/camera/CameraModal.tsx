@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, Dispatch, SetStateAction } from "react";
 import { Modal, StyleSheet } from "react-native";
 import Camera from "./Camera";
 import ImagePreview from "./ImagePreview";
 
 interface CameraModalProps {
-  setShowCamera: (show: boolean) => void;
+  setShowCamera: Dispatch<SetStateAction<boolean>>;
   onUsePicture: (uri: string) => void;
 }
 
