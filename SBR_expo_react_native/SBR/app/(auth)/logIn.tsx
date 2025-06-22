@@ -19,10 +19,9 @@ const logIn = () => {
     setLoading(false);
   }
   return (
-    <View className="flex-1 justify-center items-center">
+    <View>
       <View>
         <TextInput
-          className="bg-gray-200 text-center"
           placeholder="Enter your email"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -31,7 +30,6 @@ const logIn = () => {
           onChangeText={(text) => setEmail(text)}
         />
         <TextInput
-          className="bg-gray-200 text-center"
           placeholder="Enter your password"
           secureTextEntry={true}
           autoCapitalize="none"

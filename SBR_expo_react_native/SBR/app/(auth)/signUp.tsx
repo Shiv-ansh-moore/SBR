@@ -26,7 +26,7 @@ const signUp = () => {
     setLoading(false);
   }
   return (
-    <View className="flex-1 justify-center items-center">
+    <View>
       <View>
         <TextInput
           placeholder="Enter your email"
