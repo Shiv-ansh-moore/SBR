@@ -28,19 +28,21 @@ const index = () => {
       <Button
         title="Make Account"
         onPress={async () => {
-          const { error } = await supabase.from("users").insert({
-            id: session?.user.id,
-            username: username,
-            nickname: nickname,
-          });
-          if (error) {
-            console.error("Error creating user:", error);
-            if (error.code === "23505") {
-              Alert.alert("Username already in use");
+          if (session?.user.id) {
+            const { error } = await supabase.from("users").insert({
+              id: session?.user.id,
+              username: username,
+              nickname: nickname,
+            });
+            if (error) {
+              console.error("Error creating user:", error);
+              if (error.code === "23505") {
+                Alert.alert("Username already in use");
+              }
+            } else {
+              console.log("User created successfully!");
+              setIsUser(true);
             }
-          } else {
-            console.log("User created successfully!");
-            setIsUser(true);
           }
         }}
       />

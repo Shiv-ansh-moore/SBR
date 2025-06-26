@@ -26,46 +26,55 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [isUser, setIsUser] = useState(false);
 
   useEffect(() => {
-    async function fetchSession() {
-      setLoading(true);
-      const { data, error } = await supabase.auth.getSession();
-      setSession(data.session);
-      if (error) {
-        console.log(error);
-      }
-    }
-    fetchSession();
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    // setLoading(true) is not needed here as it's the initial state.
+
+    // onAuthStateChange returns a subscription object.
+    // It's crucial to unsubscribe when the component unmounts.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
+        // Only check for a user if a session exists
         await checkIsUser(session);
+      } else {
+        // If no session, they are definitely not a user in the DB
+        setIsUser(false);
       }
       setLoading(false);
     });
 
+    // The cleanup function for the useEffect hook
+    return () => {
+      subscription.unsubscribe();
+    };
+
+    // The async checkIsUser function remains the same
     async function checkIsUser(session: Session) {
       const { data, error } = await supabase
         .from("users")
         .select("id")
         .eq("id", session.user.id)
-        .limit(1);
-      if (error) {
-        console.log(error);
-      }
-      if (Array.isArray(data) && data.length > 0) {
+        .single(); // .single() is more efficient if you expect 1 or 0 rows
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
+        console.error("Error checking user:", error);
+        setIsUser(false);
+      } else if (data) {
         setIsUser(true);
-        console.log("User exists in the database.");
       } else {
         setIsUser(false);
-        console.log("User does not exist in the database.");
       }
     }
   }, []);
 
+  const value = { session, loading, isUser, setIsUser };
+
   return (
-    <AuthContext.Provider value={{ session, loading, isUser, setIsUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
+
 export { AuthContext };

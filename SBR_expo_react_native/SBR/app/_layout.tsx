@@ -2,8 +2,8 @@
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect } from "react";
 import { Text } from "react-native";
-import AuthProvider, { AuthContext } from "../providers/AuthProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AuthProvider, { AuthContext } from "../providers/AuthProvider";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isUser } = useContext(AuthContext);
