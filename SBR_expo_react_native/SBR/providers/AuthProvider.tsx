@@ -26,47 +26,63 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [isUser, setIsUser] = useState(false);
 
   useEffect(() => {
-    // setLoading(true) is not needed here as it's the initial state.
+    // This async function handles the entire initial authentication check.
+    const initializeAuth = async () => {
+      // 1. Proactively fetch the initial session.
+      const { data: { session: initialSession }, error } = await supabase.auth.getSession();
 
-    // onAuthStateChange returns a subscription object.
-    // It's crucial to unsubscribe when the component unmounts.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      if (session) {
-        // Only check for a user if a session exists
-        await checkIsUser(session);
-      } else {
-        // If no session, they are definitely not a user in the DB
-        setIsUser(false);
+      if (error) {
+        console.error("Error getting initial session:", error);
+        setLoading(false); // Stop loading even if there's an error.
+        return;
       }
-      setLoading(false);
-    });
 
-    // The cleanup function for the useEffect hook
-    return () => {
-      subscription.unsubscribe();
+      // 2. Check for the user profile based on the initial session.
+      // This ensures `session` and `isUser` are in sync from the start.
+      await checkIsUser(initialSession);
+      setSession(initialSession);
+
+      // 3. IMPORTANT: Set loading to false after the initial check is complete.
+      setLoading(false);
     };
 
-    // The async checkIsUser function remains the same
-    async function checkIsUser(session: Session) {
+    // Helper function to check for a user record in the database.
+    const checkIsUser = async (currentSession: Session | null) => {
+      if (!currentSession) {
+        setIsUser(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("users")
         .select("id")
-        .eq("id", session.user.id)
-        .single(); // .single() is more efficient if you expect 1 or 0 rows
+        .eq("id", currentSession.user.id)
+        .single(); // Use .single() for efficiency and simpler logic.
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not an error here
-        console.error("Error checking user:", error);
+      // PostgREST error 'PGRST116' means no rows found. This is a valid case, not an application error.
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error checking for user:", error.message);
         setIsUser(false);
-      } else if (data) {
-        setIsUser(true);
       } else {
-        setIsUser(false);
+        // If `data` is not null, a user record was found.
+        setIsUser(!!data);
       }
-    }
-  }, []);
+    };
+
+    // Run the initial auth check.
+    initializeAuth();
+
+    // Now, set up the listener for any subsequent auth changes.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        await checkIsUser(newSession);
+        setSession(newSession);
+    });
+    
+    // 4. Return a cleanup function to unsubscribe from the listener. This prevents memory leaks.
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // The empty dependency array ensures this effect runs only once on mount.
 
   const value = { session, loading, isUser, setIsUser };
 
