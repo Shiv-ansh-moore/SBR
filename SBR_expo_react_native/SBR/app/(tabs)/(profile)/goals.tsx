@@ -2,6 +2,12 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 const goals = () => {
   const router = useRouter();
+  const fetchGoals = () => {};
+  const addGoal = () => {};
+  const deleteGoal = () => {};
+  const updateGoal = () => {};
+
+
   return (
     <View>
       <Text>goals</Text>

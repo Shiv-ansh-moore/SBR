@@ -1,4 +1,4 @@
-import { useState, Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Modal, StyleSheet } from "react-native";
 import Camera from "./Camera";
 import ImagePreview from "./ImagePreview";

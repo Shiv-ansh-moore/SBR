@@ -24,12 +24,14 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUser, setIsUser] = useState(false);
-
   useEffect(() => {
     // This async function handles the entire initial authentication check.
     const initializeAuth = async () => {
       // 1. Proactively fetch the initial session.
-      const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+      const {
+        data: { session: initialSession },
+        error,
+      } = await supabase.auth.getSession();
 
       if (error) {
         console.error("Error getting initial session:", error);
@@ -60,7 +62,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         .single(); // Use .single() for efficiency and simpler logic.
 
       // PostgREST error 'PGRST116' means no rows found. This is a valid case, not an application error.
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== "PGRST116") {
         console.error("Error checking for user:", error.message);
         setIsUser(false);
       } else {
@@ -73,11 +75,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
 
     // Now, set up the listener for any subsequent auth changes.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-        await checkIsUser(newSession);
-        setSession(newSession);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      await checkIsUser(newSession);
+      setSession(newSession);
     });
-    
+
     // 4. Return a cleanup function to unsubscribe from the listener. This prevents memory leaks.
     return () => {
       subscription.unsubscribe();
@@ -86,11 +90,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   const value = { session, loading, isUser, setIsUser };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export { AuthContext };

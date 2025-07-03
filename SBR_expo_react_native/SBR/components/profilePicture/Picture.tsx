@@ -1,10 +1,4 @@
-import {
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabaseClient";
 import { AuthContext } from "../../providers/AuthProvider";
@@ -58,7 +52,7 @@ const Picture = ({ isPic }: PictureProps) => {
   }, [context.session, isPic]);
 
   const showIndicator = loading || !isPic;
-  
+
   return (
     <View>
       {showIndicator && (

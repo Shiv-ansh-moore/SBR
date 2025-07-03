@@ -1,8 +1,7 @@
 // Camera.tsx
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
-import { useRef, useState, Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useRef, useState } from "react";
 import { Button, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import ImagePreview from "./ImagePreview"; // Import the new component
 
 interface CameraProps {
   setShowCamera: Dispatch<SetStateAction<boolean>>;

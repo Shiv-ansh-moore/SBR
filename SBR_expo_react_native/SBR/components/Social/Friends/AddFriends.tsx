@@ -51,8 +51,6 @@ const AddFriends = ({ setShowAddFriends }: AddFriendsProps) => {
         `
       )
       .or(`user1_id.eq.${user_id},user2_id.eq.${user_id}`);
-    console.log(data);
-    console.log("hello");
     if (data) {
       const friendInfo = data.map((friendship) => {
         if (friendship.user1.id === user_id)
@@ -69,8 +67,6 @@ const AddFriends = ({ setShowAddFriends }: AddFriendsProps) => {
           };
         }
       });
-      console.log("hi");
-      console.log(friendInfo);
       setFriends(friendInfo);
     }
   };
@@ -168,7 +164,9 @@ const AddFriends = ({ setShowAddFriends }: AddFriendsProps) => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text key={friendInfo.user.id}>{friendInfo.user.username} pending</Text>
+              <Text key={friendInfo.user.id}>
+                {friendInfo.user.username} pending
+              </Text>
             )
           )}
         <Text>Firends</Text>

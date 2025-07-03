@@ -11,13 +11,13 @@ interface EditPictureProps {
   setIsPic: Dispatch<SetStateAction<boolean>>; // Correct type
 }
 
-const EditPicture = ({ setIsMenuVisible, setIsPic}: EditPictureProps) => {
+const EditPicture = ({ setIsMenuVisible, setIsPic }: EditPictureProps) => {
   const [showCamera, setShowCamera] = useState(false);
   const context = useContext(AuthContext);
 
   const onUsePicture = async (uri: string) => {
-    setIsPic(false)
-    setShowCamera(false)
+    setIsPic(false);
+    setShowCamera(false);
     if (context.session?.user.id) {
       // Uploads file
       // * Might refactor to use helper function instead
@@ -40,7 +40,7 @@ const EditPicture = ({ setIsMenuVisible, setIsPic}: EditPictureProps) => {
         .update({ profile_pic: filePath })
         .eq("id", context.session.user.id);
     }
-    setIsPic(true)
+    setIsPic(true);
   };
 
   return (
