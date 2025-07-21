@@ -1,7 +1,7 @@
 // app/_layout.tsx  ─ root-level layout
 import { Stack, useRouter } from "expo-router";
 import { useContext, useEffect } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthProvider, { AuthContext } from "../providers/AuthProvider";
 
@@ -26,9 +26,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#121212",
+  },
+});
+
 export default function RootLayout() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.container}>
       <AuthProvider>
         <AuthGate>
           <Stack screenOptions={{ headerShown: false }}>

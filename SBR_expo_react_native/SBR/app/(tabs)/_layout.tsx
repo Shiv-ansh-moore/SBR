@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 
 const _layout = () => {
   return (
-    <Tabs>
+    <Tabs screenOptions={{ tabBarStyle: { backgroundColor: "#121212" } }}>
       <Tabs.Screen
         name="chats"
         options={{ title: "Chats", headerShown: false }}
@@ -22,4 +22,5 @@ const _layout = () => {
     </Tabs>
   );
 };
+
 export default _layout;
