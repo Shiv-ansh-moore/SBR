@@ -7,7 +7,7 @@ const chats = () => {
   const [showAddFriends, setShowAddFriends] = useState<boolean>(false);
 
   return (
-    <View>
+    <View style={styles.container}>
       {showAddFriends && <AddFriends setShowAddFriends={setShowAddFriends} />}
       <Text>Chats</Text>
       <TouchableOpacity onPress={() => setShowAddFriends(true)}>
@@ -18,6 +18,11 @@ const chats = () => {
 };
 
 // Add styles to make the container fill the screen
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#121212",
+  },
+});
 
 export default chats;
