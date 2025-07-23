@@ -1,15 +1,24 @@
-import { StyleSheet, Text, View } from 'react-native'
+import ProfilePicture from "@/components/profile/ProfilePicture";
+import UserNickNameBox from "@/components/profile/UserNickNameBox";
+import { StyleSheet, View } from "react-native";
+import EditProfileButton from "@/components/profile/EditProfileButton";
+
 const index = () => {
   return (
     <View style={styles.container}>
-      <Text>Profile</Text>
+      <View style={styles.profilePicUserName}>
+        <ProfilePicture width={130} height={130} />
+        <UserNickNameBox />
+      </View>
+      <EditProfileButton/>
     </View>
-  )
-}
-export default index
+  );
+};
+export default index;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#121212",
   },
+  profilePicUserName: { flexDirection: "row" },
 });
