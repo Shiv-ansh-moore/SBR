@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Dispatch, SetStateAction, useState } from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Dispatch, SetStateAction, useContext, useState } from "react";
 import {
   Modal,
   StyleSheet,
@@ -8,13 +9,26 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { supabase } from "../../lib/supabaseClient";
+import { AuthContext } from "../../providers/AuthProvider";
 
 interface GoalFormModalProps {
   setShowAddGoal: Dispatch<SetStateAction<boolean>>;
   showAddGoal: boolean;
 }
 const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
+  const context = useContext(AuthContext);
+  const [dueDate, setDueDate] = useState(new Date());
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
+  const userId = context.session?.user.id;
+
+  const addGoalSubmitted = async () => {
+    if (userId) {
+      const { error } = await supabase
+        .from("goals")
+        .insert({ user_id: userId, title: "placeholder" });
+    }
+  };
 
   return (
     <View>
@@ -22,6 +36,20 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
         {/* This wrapper View centers the content */}
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
+            {showDueDatePicker && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={dueDate}
+                mode={"date"}
+                is24Hour={true}
+                onChange={(event, selectedDate) => {
+                  setShowDueDatePicker(false);
+                  if (selectedDate) {
+                    setDueDate(selectedDate);
+                  }
+                }}
+              />
+            )}
             <Text style={styles.heading}>Add Goal:</Text>
             <Text style={styles.title}>Title:</Text>
             <TextInput
@@ -35,6 +63,9 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
               autoCapitalize="words"
               multiline={true}
             ></TextInput>
+            <Text style={styles.dueDateText}>
+              Due Date: {dueDate.toDateString()}
+            </Text>
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() => setShowDueDatePicker(true)}
@@ -75,7 +106,7 @@ const styles = StyleSheet.create({
   },
 
   modalView: {
-    height: 290,
+    height: 310,
     width: "95%",
     backgroundColor: "#171717",
     borderRadius: 20,
@@ -119,7 +150,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: 5,
     marginLeft: 10,
     marginRight: 10,
     justifyContent: "space-between",
@@ -142,6 +173,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",
     alignItems: "center",
+  },
+  dueDateText: {
+    fontFamily: "ExtraLight",
+    color: "white",
+    marginLeft: 10,
+    marginTop: 5,
   },
   closeButton: { backgroundColor: "red" },
   addButton: { backgroundColor: "#3ECF8E" },
