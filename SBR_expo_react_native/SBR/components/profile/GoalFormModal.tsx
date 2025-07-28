@@ -2,7 +2,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Dispatch, SetStateAction, useContext, useState } from "react";
-
 import {
   Modal,
   StyleSheet,
@@ -20,15 +19,21 @@ interface GoalFormModalProps {
 }
 const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
   const context = useContext(AuthContext);
-  const [dueDate, setDueDate] = useState<Date | null>(null); // Use null for optional date
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
+  const [goalTitle, setGoalTitle] = useState<string | null>();
+  const [goalDescription, setGoalDescription] = useState<string | null>();
   const userId = context.session?.user.id;
 
   const addGoalSubmitted = async () => {
     if (userId) {
-      const { error } = await supabase
-        .from("goals")
-        .insert({ user_id: userId, title: "placeholder" });
+      if (goalTitle) {
+        const { error } = await supabase
+          .from("goals")
+          .insert({ user_id: userId, title: goalTitle });
+      } else {
+        alert("Ttile Required");
+      }
     }
   };
 
@@ -86,9 +91,6 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
                 Due Date: --------
               </Text>
             )}
-            {/* <Text style={styles.dueDateText}>
-              Due Date: {dueDate ? dueDate.toDateString() : "--------"}
-            </Text> */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() => setShowDueDatePicker(true)}
@@ -206,7 +208,6 @@ const styles = StyleSheet.create({
   dueDateText: {
     fontFamily: "ExtraLight",
     color: "white",
-    // The margin is now on the container
   },
   deleteIcon: {
     marginLeft: 8, // Adds a little space between the text and the icon
