@@ -1,6 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Dispatch, SetStateAction, useContext, useState } from "react";
+
 import {
   Modal,
   StyleSheet,
@@ -18,7 +20,7 @@ interface GoalFormModalProps {
 }
 const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
   const context = useContext(AuthContext);
-  const [dueDate, setDueDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState<Date | null>(null); // Use null for optional date
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
   const userId = context.session?.user.id;
 
@@ -39,7 +41,7 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
             {showDueDatePicker && (
               <DateTimePicker
                 testID="dateTimePicker"
-                value={dueDate}
+                value={new Date()}
                 mode={"date"}
                 is24Hour={true}
                 onChange={(event, selectedDate) => {
@@ -63,9 +65,30 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
               autoCapitalize="words"
               multiline={true}
             ></TextInput>
-            <Text style={styles.dueDateText}>
-              Due Date: {dueDate.toDateString()}
-            </Text>
+            {dueDate ? (
+              <View style={styles.dueDateContainer}>
+                <Text style={styles.dueDateText}>
+                  Due Date: {dueDate.toDateString()}
+                </Text>
+                <TouchableOpacity onPress={() => setDueDate(null)}>
+                  <MaterialCommunityIcons
+                    name="delete"
+                    size={20}
+                    color="red"
+                    style={styles.deleteIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text
+                style={[styles.dueDateText, { marginLeft: 10, marginTop: 5 }]}
+              >
+                Due Date: --------
+              </Text>
+            )}
+            {/* <Text style={styles.dueDateText}>
+              Due Date: {dueDate ? dueDate.toDateString() : "--------"}
+            </Text> */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() => setShowDueDatePicker(true)}
@@ -174,11 +197,19 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77, 61, 61, 0.50)",
     alignItems: "center",
   },
+  dueDateContainer: {
+    flexDirection: "row",
+    alignItems: "center", // This is the key property for vertical alignment
+    marginLeft: 10,
+    marginTop: 5,
+  },
   dueDateText: {
     fontFamily: "ExtraLight",
     color: "white",
-    marginLeft: 10,
-    marginTop: 5,
+    // The margin is now on the container
+  },
+  deleteIcon: {
+    marginLeft: 8, // Adds a little space between the text and the icon
   },
   closeButton: { backgroundColor: "red" },
   addButton: { backgroundColor: "#3ECF8E" },
