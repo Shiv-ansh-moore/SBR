@@ -1,9 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import Checkbox from "expo-checkbox";
 import { Dispatch, SetStateAction, useContext, useState } from "react";
 import {
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -23,14 +25,23 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
   const [goalTitle, setGoalTitle] = useState<string | null>();
   const [goalDescription, setGoalDescription] = useState<string | null>();
+  const [isPublic, setIsPublic] = useState<boolean>(false);
   const userId = context.session?.user.id;
 
   const addGoalSubmitted = async () => {
     if (userId) {
       if (goalTitle) {
-        const { error } = await supabase
-          .from("goals")
-          .insert({ user_id: userId, title: goalTitle });
+        const { error } = await supabase.from("goals").insert({
+          user_id: userId,
+          title: goalTitle,
+          description: goalDescription,
+          due_date: dueDate?.toISOString(),
+          is_public: isPublic,
+        });
+        setShowAddGoal(false);
+        if (error) {
+          console.log(error);
+        }
       } else {
         alert("Ttile Required");
       }
@@ -63,13 +74,26 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
               style={styles.titleInput}
               autoCapitalize="words"
               autoFocus={true}
+              onChangeText={(title) => setGoalTitle(title)}
             ></TextInput>
             <Text style={styles.title}>Description:</Text>
             <TextInput
               style={styles.descriptionInput}
               autoCapitalize="words"
               multiline={true}
+              onChangeText={(description) => setGoalDescription(description)}
             ></TextInput>
+            <Pressable
+              style={styles.checkboxContainer}
+              onPress={() => setIsPublic(!isPublic)}
+            >
+              <Text style={styles.checkboxLabel}>Make Goal Public:</Text>
+              <Checkbox
+                value={isPublic}
+                onValueChange={setIsPublic}
+                color={isPublic ? "#3ECF8E" : "rgba(77, 61, 61, 0.50)"}
+              />
+            </Pressable>
             {dueDate ? (
               <View style={styles.dueDateContainer}>
                 <Text style={styles.dueDateText}>
@@ -91,6 +115,7 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
                 Due Date: --------
               </Text>
             )}
+
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={() => setShowDueDatePicker(true)}
@@ -110,7 +135,10 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
               >
                 <Text style={[styles.buttonText]}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.buttons, styles.addButton]}>
+              <TouchableOpacity
+                style={[styles.buttons, styles.addButton]}
+                onPress={() => addGoalSubmitted()}
+              >
                 <Text style={[styles.buttonText]}>Add Goal</Text>
               </TouchableOpacity>
             </View>
@@ -131,7 +159,7 @@ const styles = StyleSheet.create({
   },
 
   modalView: {
-    height: 310,
+    height: 330,
     width: "95%",
     backgroundColor: "#171717",
     borderRadius: 20,
@@ -172,6 +200,18 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     marginLeft: 10,
     marginRight: 10,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5,
+    marginLeft: 10,
+    marginRight: 15,
+  },
+  checkboxLabel: {
+    fontFamily: "ExtraLight",
+    color: "white",
+    marginRight: 5,
   },
   buttonContainer: {
     flexDirection: "row",
