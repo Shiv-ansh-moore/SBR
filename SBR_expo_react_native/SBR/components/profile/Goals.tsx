@@ -1,22 +1,62 @@
+import { supabase } from "@/lib/supabaseClient";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Dispatch, SetStateAction } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { AuthContext } from "../../providers/AuthProvider";
 
 interface GoalsProps {
   setShowAddGoal: Dispatch<SetStateAction<boolean>>;
 }
+interface Goal {
+  id: number;
+  title: string;
+}
 
 const Goals = ({ setShowAddGoal }: GoalsProps) => {
+  const user_id = useContext(AuthContext).session?.user.id;
+  const [goals, setGoals] = useState<Goal[]>([]);
+
+  useEffect(() => {
+    if (user_id) {
+      const getGoals = async () => {
+        const { data, error } = await supabase
+          .from("goals")
+          .select("id ,title")
+          .eq("user_id", user_id);
+        if (error) {
+          console.log(error);
+        } else if (data) {
+          setGoals(data);
+        }
+      };
+      getGoals();
+    }
+  }, [user_id]);
+
   return (
     <View style={styles.box}>
       <Text style={styles.title}>Goals</Text>
       <View>
-        <Text style={styles.listText}>• Get to 80kg</Text>
-        <Text style={styles.listText}>• £500000000</Text>
-        <Text style={styles.listText}>• Get Active</Text>
-        <Text style={styles.listText}>• Get First Class Honours</Text>
+        <FlatList
+          data={goals}
+          renderItem={({ item }) => {
+            return <Text style={styles.listText}>• {item.title}</Text>;
+          }}
+        ></FlatList>
       </View>
       <View style={styles.crudBox}>
         <TouchableOpacity onPress={() => setShowAddGoal(true)}>
