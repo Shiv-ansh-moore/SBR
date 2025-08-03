@@ -29,6 +29,7 @@ interface Goal {
 const Goals = ({ setShowAddGoal }: GoalsProps) => {
   const user_id = useContext(AuthContext).session?.user.id;
   const [goals, setGoals] = useState<Goal[]>([]);
+  const goalChannel = supabase.channel("goalChannel");
 
   useEffect(() => {
     if (user_id) {
@@ -44,6 +45,26 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
         }
       };
       getGoals();
+      goalChannel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "goals",
+            filter: `user_id=eq.${user_id}`,
+          },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              setGoals((prevGoals) => [...prevGoals, payload.new as Goal]);
+            }
+          }
+        )
+        .subscribe();
+      return () => {
+        console.log("Cleaning up the channel!");
+        supabase.removeChannel(goalChannel);
+      };
     }
   }, [user_id]);
 
