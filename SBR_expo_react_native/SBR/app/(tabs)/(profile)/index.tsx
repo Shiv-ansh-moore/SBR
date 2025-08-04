@@ -1,3 +1,4 @@
+
 import EditProfileButton from "@/components/profile/EditProfileButton";
 import GoalFormModal from "@/components/profile/GoalFormModal";
 import Goals from "@/components/profile/Goals";
@@ -11,6 +12,7 @@ import { StyleSheet, View } from "react-native";
 const index = () => {
   const [showAddHabbit, setShowAddHabbit] = useState<boolean>(false);
   const [showAddGoal, setShowAddGoal] = useState<boolean>(false);
+
 
   return (
     <View style={styles.container}>

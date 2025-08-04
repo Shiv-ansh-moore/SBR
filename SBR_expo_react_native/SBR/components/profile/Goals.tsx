@@ -1,3 +1,4 @@
+import DeleteGoalModal from "@/components/profile/DeleteGoalModal";
 import { supabase } from "@/lib/supabaseClient";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 import {
+  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -29,7 +31,10 @@ interface Goal {
 const Goals = ({ setShowAddGoal }: GoalsProps) => {
   const user_id = useContext(AuthContext).session?.user.id;
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [deleteMode, setDeleteMode] = useState<boolean>(false);
+  const [showDeleteGoal, setShowDeleteGoal] = useState<boolean>(false);
   const goalChannel = supabase.channel("goalChannel");
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   useEffect(() => {
     if (user_id) {
@@ -68,14 +73,56 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
     }
   }, [user_id]);
 
+  const handleOpenDeleteModal = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setShowDeleteGoal(true);
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!selectedGoal) return; // Guard against no selected goal
+
+    const { error } = await supabase
+      .from("goals")
+      .delete()
+      .eq("id", selectedGoal.id);
+
+    if (error) {
+      console.log(error);
+    } else {
+      setGoals((currentGoals) =>
+        currentGoals.filter((goal) => goal.id !== selectedGoal.id)
+      );
+    }
+    // Close modal and reset state
+    setShowDeleteGoal(false);
+    setSelectedGoal(null);
+    setDeleteMode(false); // Optionally turn off delete mode after a deletion
+  };
+
   return (
     <View style={styles.box}>
       <Text style={styles.title}>Goals</Text>
-      <View>
+      <View style={styles.listContainer}>
         <FlatList
           data={goals}
           renderItem={({ item }) => {
-            return <Text style={styles.listText}>• {item.title}</Text>;
+            return (
+              <View style={styles.listTextContainer}>
+                <Text style={styles.listText}>• {item.title}</Text>
+                {deleteMode && (
+                  <TouchableOpacity
+                    style={styles.deleteGoalButton}
+                    onPress={() => handleOpenDeleteModal(item)}
+                  >
+                    <MaterialCommunityIcons
+                      name="delete"
+                      size={20}
+                      color="red"
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
           }}
         ></FlatList>
       </View>
@@ -86,10 +133,22 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
         <TouchableOpacity>
           <Feather name="edit" size={25} color="#3ECF8E" />
         </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="delete" size={25} color="#3ECF8E" />
+        <TouchableOpacity
+          onPress={() => setDeleteMode((currentMode) => !currentMode)}
+        >
+          {deleteMode ? (
+            <MaterialCommunityIcons name="delete" size={25} color="red" />
+          ) : (
+            <MaterialCommunityIcons name="delete" size={25} color="#3ECF8E" />
+          )}
         </TouchableOpacity>
       </View>
+      <DeleteGoalModal
+        setShowDeleteGoal={setShowDeleteGoal}
+        showDeleteGoal={showDeleteGoal}
+        goalTitle={selectedGoal?.title}
+        onDeleteConfirm={handleDeleteGoal}
+      />
     </View>
   );
 };
@@ -109,12 +168,15 @@ const styles = StyleSheet.create({
     fontFamily: "SemiBold",
     marginLeft: 10,
   },
+  listContainer: { height: 180 },
+  listTextContainer: { flexDirection: "row", justifyContent: "space-between" },
   listText: {
     fontSize: 16,
     color: "white",
     fontFamily: "Light",
     marginLeft: 5,
   },
+  deleteGoalButton: { marginRight: 5 },
   crudBox: {
     width: 313,
     height: 30,
