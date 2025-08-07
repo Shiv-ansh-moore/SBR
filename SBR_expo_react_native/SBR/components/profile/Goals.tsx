@@ -3,13 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import {
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -19,16 +13,14 @@ import {
 } from "react-native";
 import { AuthContext } from "../../providers/AuthProvider";
 import EditGoalModal from "./EditGoalModal";
+import GoalFormModal from "./GoalFormModal";
 
-interface GoalsProps {
-  setShowAddGoal: Dispatch<SetStateAction<boolean>>;
-}
 interface Goal {
   id: number;
   title: string;
 }
 
-const Goals = ({ setShowAddGoal }: GoalsProps) => {
+const Goals = () => {
   const user_id = useContext(AuthContext).session?.user.id;
   const [goals, setGoals] = useState<Goal[]>([]);
   const [deleteMode, setDeleteMode] = useState<boolean>(false);
@@ -37,6 +29,7 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [showEditGoal, setShowEditGoal] = useState<boolean>(false);
+  const [showAddGoal, setShowAddGoal] = useState<boolean>(false);
 
   useEffect(() => {
     if (user_id) {
@@ -64,11 +57,12 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
           (payload) => {
             if (payload.eventType === "INSERT") {
               setGoals((prevGoals) => [...prevGoals, payload.new as Goal]);
-            }
-            else if (payload.eventType === "UPDATE"){
+            } else if (payload.eventType === "UPDATE") {
               setGoals((prevGoals) =>
                 prevGoals.map((goal) =>
-                  goal.id === (payload.new as Goal).id ? (payload.new as Goal) : goal
+                  goal.id === (payload.new as Goal).id
+                    ? (payload.new as Goal)
+                    : goal
                 )
               );
             }
@@ -145,7 +139,8 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
                   </TouchableOpacity>
                 )}
                 {editMode && (
-                  <TouchableOpacity style={styles.deleteGoalButton}
+                  <TouchableOpacity
+                    style={styles.deleteGoalButton}
                     onPress={() => {
                       setSelectedGoal(item);
                       setShowEditGoal(true);
@@ -189,6 +184,10 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
         setShowEditGoal={setShowEditGoal}
         goalId={selectedGoal?.id ?? null}
         setEditMode={setEditMode}
+      />
+      <GoalFormModal
+        showAddGoal={showAddGoal}
+        setShowAddGoal={setShowAddGoal}
       />
     </View>
   );

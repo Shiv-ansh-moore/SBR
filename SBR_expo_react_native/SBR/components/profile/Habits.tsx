@@ -4,11 +4,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Dispatch, SetStateAction } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-interface HabitsProps {
-  setShowAddHabbit: Dispatch<SetStateAction<boolean>>;
-}
-
-const Habits = ({ setShowAddHabbit }: HabitsProps) => {
+const Habits = () => {
   return (
     <View style={styles.box}>
       <Text style={styles.title}>Habits</Text>
@@ -19,7 +15,7 @@ const Habits = ({ setShowAddHabbit }: HabitsProps) => {
         <Text style={styles.listText}>• Less than 15</Text>
       </View>
       <View style={styles.crudBox}>
-        <TouchableOpacity onPress={() => setShowAddHabbit(true)}>
+        <TouchableOpacity onPress={() => {}}>
           <Ionicons name="add-circle" size={25} color="#3ECF8E" />
         </TouchableOpacity>
         <TouchableOpacity>
