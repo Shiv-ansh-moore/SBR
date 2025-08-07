@@ -4,8 +4,8 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 interface DeleteGoalModalProps {
   setShowDeleteGoal: Dispatch<SetStateAction<boolean>>;
   showDeleteGoal: boolean;
-  goalTitle?: string; // Make title optional, as it's not present when modal is hidden
-  onDeleteConfirm: () => void; // Function to call when delete is confirmed
+  goalTitle?: string;
+  onDeleteConfirm: () => void;
 }
 
 const DeleteGoalModal = ({

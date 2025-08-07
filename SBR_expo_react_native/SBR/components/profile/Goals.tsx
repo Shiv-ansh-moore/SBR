@@ -11,7 +11,6 @@ import {
   useState,
 } from "react";
 import {
-  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { AuthContext } from "../../providers/AuthProvider";
+import EditGoalModal from "./EditGoalModal";
 
 interface GoalsProps {
   setShowAddGoal: Dispatch<SetStateAction<boolean>>;
@@ -35,6 +35,8 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
   const [showDeleteGoal, setShowDeleteGoal] = useState<boolean>(false);
   const goalChannel = supabase.channel("goalChannel");
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [editMode, setEditMode] = useState<boolean>(false);
+  const [showEditGoal, setShowEditGoal] = useState<boolean>(false);
 
   useEffect(() => {
     if (user_id) {
@@ -63,6 +65,13 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
             if (payload.eventType === "INSERT") {
               setGoals((prevGoals) => [...prevGoals, payload.new as Goal]);
             }
+            else if (payload.eventType === "UPDATE"){
+              setGoals((prevGoals) =>
+                prevGoals.map((goal) =>
+                  goal.id === (payload.new as Goal).id ? (payload.new as Goal) : goal
+                )
+              );
+            }
           }
         )
         .subscribe();
@@ -77,9 +86,24 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
     setSelectedGoal(goal);
     setShowDeleteGoal(true);
   };
+  const handleAddGoal = () => {
+    setShowAddGoal(true);
+    setDeleteMode(false);
+    setEditMode(false);
+  };
+
+  const handleDeleteMode = () => {
+    setDeleteMode((currentMode) => !currentMode);
+    setEditMode(false);
+  };
+
+  const handleEditGoalMode = () => {
+    setEditMode((currentMode) => !currentMode);
+    setDeleteMode(false);
+  };
 
   const handleDeleteGoal = async () => {
-    if (!selectedGoal) return; // Guard against no selected goal
+    if (!selectedGoal) return;
 
     const { error } = await supabase
       .from("goals")
@@ -93,10 +117,9 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
         currentGoals.filter((goal) => goal.id !== selectedGoal.id)
       );
     }
-    // Close modal and reset state
     setShowDeleteGoal(false);
     setSelectedGoal(null);
-    setDeleteMode(false); // Optionally turn off delete mode after a deletion
+    setDeleteMode(false);
   };
 
   return (
@@ -121,21 +144,33 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
                     />
                   </TouchableOpacity>
                 )}
+                {editMode && (
+                  <TouchableOpacity style={styles.deleteGoalButton}
+                    onPress={() => {
+                      setSelectedGoal(item);
+                      setShowEditGoal(true);
+                    }}
+                  >
+                    <Feather name="edit" size={20} color="orange" />
+                  </TouchableOpacity>
+                )}
               </View>
             );
           }}
         ></FlatList>
       </View>
       <View style={styles.crudBox}>
-        <TouchableOpacity onPress={() => setShowAddGoal(true)}>
+        <TouchableOpacity onPress={() => handleAddGoal()}>
           <Ionicons name="add-circle" size={25} color="#3ECF8E" />
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Feather name="edit" size={25} color="#3ECF8E" />
+        <TouchableOpacity onPress={() => handleEditGoalMode()}>
+          {editMode ? (
+            <Feather name="edit" size={25} color="orange" />
+          ) : (
+            <Feather name="edit" size={25} color="#3ECF8E" />
+          )}
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setDeleteMode((currentMode) => !currentMode)}
-        >
+        <TouchableOpacity onPress={() => handleDeleteMode()}>
           {deleteMode ? (
             <MaterialCommunityIcons name="delete" size={25} color="red" />
           ) : (
@@ -148,6 +183,12 @@ const Goals = ({ setShowAddGoal }: GoalsProps) => {
         showDeleteGoal={showDeleteGoal}
         goalTitle={selectedGoal?.title}
         onDeleteConfirm={handleDeleteGoal}
+      />
+      <EditGoalModal
+        showEditGoal={showEditGoal}
+        setShowEditGoal={setShowEditGoal}
+        goalId={selectedGoal?.id ?? null}
+        setEditMode={setEditMode}
       />
     </View>
   );
