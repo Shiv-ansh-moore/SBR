@@ -1,4 +1,4 @@
-import DeleteGoalModal from "@/components/profile/DeleteGoalModal";
+import DeleteGoalModal from "@/components/profile/goal/DeleteGoalModal";
 import { supabase } from "@/lib/supabaseClient";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthContext } from "../../providers/AuthProvider";
+import { AuthContext } from "@/providers/AuthProvider";
 import EditGoalModal from "./EditGoalModal";
 import GoalFormModal from "./GoalFormModal";
 

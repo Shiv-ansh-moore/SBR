@@ -12,8 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { supabase } from "../../lib/supabaseClient";
-import { AuthContext } from "../../providers/AuthProvider";
+import { supabase } from "@/lib/supabaseClient";
+import { AuthContext } from "@/providers/AuthProvider";
 
 interface GoalFormModalProps {
   setShowAddGoal: Dispatch<SetStateAction<boolean>>;

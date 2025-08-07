@@ -1,8 +1,7 @@
 
 import EditProfileButton from "@/components/profile/EditProfileButton";
-import GoalFormModal from "@/components/profile/GoalFormModal";
-import Goals from "@/components/profile/Goals";
-import Habits from "@/components/profile/Habits";
+import Goals from "@/components/profile/goal/Goals";
+import Habits from "@/components/profile/habbit/Habits";
 import ProfilePicture from "@/components/profile/ProfilePicture";
 import UserNickNameBox from "@/components/profile/UserNickNameBox";
 import { useState } from "react";
