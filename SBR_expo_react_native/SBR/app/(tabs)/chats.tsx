@@ -1,5 +1,5 @@
 // chats.tsx
-import AddFriends from "@/components/Social/Friends/AddFriends";
+import AddFriends from "@/components/profile/friends/AddFriends";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Import StyleSheet
 
