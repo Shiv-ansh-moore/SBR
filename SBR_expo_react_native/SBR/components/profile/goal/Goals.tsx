@@ -1,5 +1,6 @@
 import DeleteGoalModal from "@/components/profile/goal/DeleteGoalModal";
 import { supabase } from "@/lib/supabaseClient";
+import { AuthContext } from "@/providers/AuthProvider";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -11,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthContext } from "@/providers/AuthProvider";
 import EditGoalModal from "./EditGoalModal";
 import GoalFormModal from "./GoalFormModal";
 
@@ -121,7 +121,7 @@ const Goals = () => {
       <Text style={styles.title}>Goals</Text>
       <View style={styles.listContainer}>
         <FlatList
-          data={goals}
+          data={goals}      
           renderItem={({ item }) => {
             return (
               <View style={styles.listTextContainer}>
@@ -152,7 +152,9 @@ const Goals = () => {
               </View>
             );
           }}
-        ></FlatList>
+        ListEmptyComponent={() => (
+                  <Text style={styles.noGoalsText}>No Goals yet. Add one!</Text>
+                )}></FlatList>
       </View>
       <View style={styles.crudBox}>
         <TouchableOpacity onPress={() => handleAddGoal()}>
@@ -229,5 +231,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     position: "absolute",
     bottom: 0,
+  },  noGoalsText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    fontFamily: "Light",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 20,
   },
 });

@@ -1,7 +1,7 @@
 
 import EditProfileButton from "@/components/profile/EditProfileButton";
 import Goals from "@/components/profile/goal/Goals";
-import Habits from "@/components/profile/habbit/Habits";
+import Habits from "@/components/profile/habit/Habits";
 import ProfilePicture from "@/components/profile/ProfilePicture";
 import UserNickNameBox from "@/components/profile/UserNickNameBox";
 import { useState } from "react";
