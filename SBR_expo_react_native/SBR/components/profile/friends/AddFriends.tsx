@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
+// --- NEW --- Import MaterialCommunityIcons for the delete icon
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   Dispatch,
   SetStateAction,
@@ -41,6 +43,10 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
   const { session } = useContext(AuthContext);
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const user_id = session?.user.id;
+
+  // --- NEW --- State for managing the delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [friendToDelete, setFriendToDelete] = useState<FriendInfo | null>(null);
 
   const pendingRequests = friends.filter(
     (f) => f.status === "pending" && !f.sender
@@ -152,7 +158,6 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
     }
   };
 
-  // --- 1. NEW FUNCTION TO DECLINE A FRIEND REQUEST ---
   const declineFriend = async (friendId: string) => {
     if (!user_id) return;
     const { error } = await supabase
@@ -164,17 +169,50 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
     if (error) {
       Alert.alert("Error", "Could not decline friend request.");
     } else {
-      fetchFriends(); // Refresh the list after deleting
+      fetchFriends();
     }
   };
 
+  // --- NEW --- Function to remove an accepted friend
+  const deleteFriend = async () => {
+    if (!user_id || !friendToDelete) return;
+    const friendId = friendToDelete.user.id;
+
+    // This query handles deleting the row regardless of who is user1 or user2
+    const { error } = await supabase
+      .from("friends")
+      .delete()
+      .or(
+        `and(user1_id.eq.${user_id},user2_id.eq.${friendId}),and(user1_id.eq.${friendId},user2_id.eq.${user_id})`
+      );
+
+    if (error) {
+      Alert.alert("Error", "Could not remove friend.");
+      console.error("Delete friend error:", error);
+    } else {
+      // Close modal and refresh the list
+      setShowDeleteModal(false);
+      setFriendToDelete(null);
+      fetchFriends();
+    }
+  };
+
+  // --- NEW --- Handler to open the modal
+  const handleDeletePress = (friend: FriendInfo) => {
+    setFriendToDelete(friend);
+    setShowDeleteModal(true);
+  };
+
+  // --- MODIFIED --- Render function for accepted friends now includes a delete button
   const renderFriendItem = ({ item }: { item: FriendInfo }) => (
     <View style={styles.friendRow}>
       <Text style={styles.friendName}>{item.user.username}</Text>
+      <TouchableOpacity onPress={() => handleDeletePress(item)}>
+        <MaterialCommunityIcons name="delete" size={24} color="#E53935" />
+      </TouchableOpacity>
     </View>
   );
 
-  // --- 2. UPDATED RENDER FUNCTION FOR REQUESTS ---
   const renderRequestItem = ({ item }: { item: FriendInfo }) => (
     <View style={styles.friendRow}>
       <Text style={styles.friendName}>{item.user.username}</Text>
@@ -244,13 +282,42 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
             }
           />
         </View>
+
+        {/* --- NEW --- Delete Confirmation Modal */}
+        <Modal transparent={true} visible={showDeleteModal} animationType="fade">
+          <View style={styles.modalCenteredView}>
+            <View style={styles.modalView}>
+              <Text style={styles.modalText}>
+                Are you sure you want to remove "
+                {friendToDelete?.user.username}" as a friend?
+              </Text>
+              <View style={styles.modalButtonContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => {
+                    setShowDeleteModal(false);
+                    setFriendToDelete(null);
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonDelete]}
+                  onPress={deleteFriend}
+                >
+                  <Text style={styles.modalButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </Modal>
   );
 };
+
 export default AddFriends;
 
-// --- 3. UPDATED STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -322,7 +389,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "Light",
   },
-  actionButtonsContainer: { // New style for the button group
+  actionButtonsContainer: {
     flexDirection: "row",
     gap: 10,
   },
@@ -332,13 +399,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
   },
-  declineButton: { // New style for the decline button
+  declineButton: {
     backgroundColor: "#E53935",
     paddingHorizontal: 15,
     paddingVertical: 5,
     borderRadius: 8,
   },
-  buttonText: { // Generic style for both buttons
+  buttonText: {
     color: "white",
     fontFamily: "SemiBold",
     fontSize: 14,
@@ -348,5 +415,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 15,
     fontFamily: "Light",
+  },
+  // --- NEW --- Styles for the delete confirmation modal
+  modalCenteredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  modalView: {
+    height: 200,
+    width: "90%",
+    backgroundColor: "#171717",
+    borderRadius: 20,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalText: {
+    color: "white",
+    fontSize: 18,
+    fontFamily: "SemiBold",
+    textAlign: "center",
+  },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+  },
+  modalButton: {
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    elevation: 2,
+    width: "45%",
+    alignItems: "center",
+  },
+  modalButtonCancel: {
+    backgroundColor: "#4A4A4A",
+  },
+  modalButtonDelete: {
+    backgroundColor: "#E53935",
+  },
+  modalButtonText: {
+    color: "white",
+    fontFamily: "SemiBold",
+    fontSize: 16,
   },
 });
