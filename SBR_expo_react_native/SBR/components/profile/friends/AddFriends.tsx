@@ -83,7 +83,6 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
     }
   };
 
-  // CORRECTED addFriend FUNCTION
   const addFriend = async () => {
     if (newFriend.trim() === "") {
       Alert.alert("Input empty", "Please enter a username.");
@@ -101,7 +100,6 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
       return;
     }
 
-    // This 'if' block is the fix. It ensures both IDs are defined.
     if (user_id && friendData.id) {
       if (friendData.id === user_id) {
         Alert.alert("That's you!", "You can't add yourself as a friend.");
@@ -111,6 +109,7 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
       const isAlreadyFriends = friends.some(
         (f) => f.user.id === friendData.id
       );
+
       if (isAlreadyFriends) {
         Alert.alert(
           "Already connected",
@@ -119,7 +118,6 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
         return;
       }
 
-      // Inside this block, TypeScript knows user_id and friendData.id are strings.
       const { error: insertError } = await supabase.from("friends").insert({
         user1_id: user_id,
         user2_id: friendData.id,
@@ -154,21 +152,46 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
     }
   };
 
+  // --- 1. NEW FUNCTION TO DECLINE A FRIEND REQUEST ---
+  const declineFriend = async (friendId: string) => {
+    if (!user_id) return;
+    const { error } = await supabase
+      .from("friends")
+      .delete()
+      .eq("user1_id", friendId)
+      .eq("user2_id", user_id);
+
+    if (error) {
+      Alert.alert("Error", "Could not decline friend request.");
+    } else {
+      fetchFriends(); // Refresh the list after deleting
+    }
+  };
+
   const renderFriendItem = ({ item }: { item: FriendInfo }) => (
     <View style={styles.friendRow}>
       <Text style={styles.friendName}>{item.user.username}</Text>
     </View>
   );
 
+  // --- 2. UPDATED RENDER FUNCTION FOR REQUESTS ---
   const renderRequestItem = ({ item }: { item: FriendInfo }) => (
     <View style={styles.friendRow}>
       <Text style={styles.friendName}>{item.user.username}</Text>
-      <TouchableOpacity
-        style={styles.acceptButton}
-        onPress={() => acceptFriend(item.user.id)}
-      >
-        <Text style={styles.acceptButtonText}>Accept</Text>
-      </TouchableOpacity>
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={styles.acceptButton}
+          onPress={() => acceptFriend(item.user.id)}
+        >
+          <Text style={styles.buttonText}>Accept</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.declineButton}
+          onPress={() => declineFriend(item.user.id)}
+        >
+          <Text style={styles.buttonText}>Decline</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -215,7 +238,9 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
             renderItem={renderFriendItem}
             keyExtractor={(item) => item.user.id}
             ListEmptyComponent={
-              <Text style={styles.emptyListText}>No friends yet. Add one!</Text>
+              <Text style={styles.emptyListText}>
+                No friends yet. Add one!
+              </Text>
             }
           />
         </View>
@@ -225,6 +250,7 @@ const AddFriends = ({ setShowFriends, showFriends }: AddFriendsProps) => {
 };
 export default AddFriends;
 
+// --- 3. UPDATED STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -270,7 +296,6 @@ const styles = StyleSheet.create({
     fontFamily: "SemiBold",
   },
   listSection: {
-    flex: 1,
     marginBottom: 10,
   },
   subHeading: {
@@ -297,13 +322,23 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "Light",
   },
+  actionButtonsContainer: { // New style for the button group
+    flexDirection: "row",
+    gap: 10,
+  },
   acceptButton: {
     backgroundColor: "#3ECF8E",
     paddingHorizontal: 15,
     paddingVertical: 5,
     borderRadius: 8,
   },
-  acceptButtonText: {
+  declineButton: { // New style for the decline button
+    backgroundColor: "#E53935",
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  buttonText: { // Generic style for both buttons
     color: "white",
     fontFamily: "SemiBold",
     fontSize: 14,
