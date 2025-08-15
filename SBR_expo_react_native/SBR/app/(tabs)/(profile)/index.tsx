@@ -1,5 +1,5 @@
 
-import EditProfileButton from "@/components/profile/EditProfileButton";
+import EditProfileButton from "@/components/profile/editProfile/EditProfileButton";
 import Goals from "@/components/profile/goal/Goals";
 import Habits from "@/components/profile/habit/Habits";
 import ProfilePicture from "@/components/profile/ProfilePicture";
