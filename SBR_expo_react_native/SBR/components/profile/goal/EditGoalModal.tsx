@@ -32,7 +32,7 @@ const EditGoalModal = ({
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
   const [goalTitle, setGoalTitle] = useState<string>(""); // Initialize as empty string
   const [goalDescription, setGoalDescription] = useState<string | null>(null);
-  const [isPublic, setIsPublic] = useState<boolean>(false);
+  const [isPublic, setIsPublic] = useState<boolean>(true);
 
   // 1. Fetch goal data when the component mounts or goalId changes
   useEffect(() => {

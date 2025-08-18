@@ -25,7 +25,7 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
   const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
   const [goalTitle, setGoalTitle] = useState<string | null>();
   const [goalDescription, setGoalDescription] = useState<string | null>();
-  const [isPublic, setIsPublic] = useState<boolean>(false);
+  const [isPublic, setIsPublic] = useState<boolean>(true);
   const userId = context.session?.user.id;
 
   const addGoalSubmitted = async () => {
