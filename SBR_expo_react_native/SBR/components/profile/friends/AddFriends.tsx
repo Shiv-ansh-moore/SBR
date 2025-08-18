@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import Ionicons from "@expo/vector-icons/Ionicons";
-// --- NEW --- Import MaterialCommunityIcons for the delete icon
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   Dispatch,

@@ -70,7 +70,7 @@ const HabitFormModal = ({
     };
 
     fetchUserGoals();
-  }, [userId]);
+  }, [showAddHabit]);
 
   const onTimeSelected = (event: any, selectedDate?: Date) => {
     setShowTimePicker(false);

@@ -25,7 +25,6 @@ const Goals = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [deleteMode, setDeleteMode] = useState<boolean>(false);
   const [showDeleteGoal, setShowDeleteGoal] = useState<boolean>(false);
-  const goalChannel = supabase.channel("goalChannel");
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [showEditGoal, setShowEditGoal] = useState<boolean>(false);
@@ -45,7 +44,9 @@ const Goals = () => {
         }
       };
       getGoals();
-      goalChannel
+
+      const goalChannel = supabase
+        .channel(`goals-channel-${user_id}`)
         .on(
           "postgres_changes",
           {
@@ -69,8 +70,8 @@ const Goals = () => {
           }
         )
         .subscribe();
+
       return () => {
-        console.log("Cleaning up the channel!");
         supabase.removeChannel(goalChannel);
       };
     }
@@ -80,6 +81,7 @@ const Goals = () => {
     setSelectedGoal(goal);
     setShowDeleteGoal(true);
   };
+
   const handleAddGoal = () => {
     setShowAddGoal(true);
     setDeleteMode(false);
@@ -121,26 +123,28 @@ const Goals = () => {
       <Text style={styles.title}>Goals</Text>
       <View style={styles.listContainer}>
         <FlatList
-          data={goals}      
-          renderItem={({ item }) => {
-            return (
-              <View style={styles.listTextContainer}>
-                <Text style={styles.listText}>• {item.title}</Text>
+          data={goals}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            // Each list item is a row
+            <View style={styles.listItemContainer}>
+              {/* The bullet and title are now separate */}
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.listItemText}>{item.title}</Text>
+
+              {/* The action buttons are grouped in their own container */}
+              <View style={styles.actionButtonsContainer}>
                 {deleteMode && (
                   <TouchableOpacity
-                    style={styles.deleteGoalButton}
+                    style={styles.actionButton}
                     onPress={() => handleOpenDeleteModal(item)}
                   >
-                    <MaterialCommunityIcons
-                      name="delete"
-                      size={20}
-                      color="red"
-                    />
+                    <MaterialCommunityIcons name="delete" size={20} color="red" />
                   </TouchableOpacity>
                 )}
                 {editMode && (
                   <TouchableOpacity
-                    style={styles.deleteGoalButton}
+                    style={styles.actionButton}
                     onPress={() => {
                       setSelectedGoal(item);
                       setShowEditGoal(true);
@@ -150,29 +154,30 @@ const Goals = () => {
                   </TouchableOpacity>
                 )}
               </View>
-            );
-          }}
-        ListEmptyComponent={() => (
-                  <Text style={styles.noGoalsText}>No Goals yet. Add one!</Text>
-                )}></FlatList>
+            </View>
+          )}
+          ListEmptyComponent={() => (
+            <Text style={styles.noGoalsText}>No Goals yet. Add one!</Text>
+          )}
+        />
       </View>
       <View style={styles.crudBox}>
-        <TouchableOpacity onPress={() => handleAddGoal()}>
+        <TouchableOpacity onPress={handleAddGoal}>
           <Ionicons name="add-circle" size={25} color="#3ECF8E" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleEditGoalMode()}>
-          {editMode ? (
-            <Feather name="edit" size={25} color="orange" />
-          ) : (
-            <Feather name="edit" size={25} color="#3ECF8E" />
-          )}
+        <TouchableOpacity onPress={handleEditGoalMode}>
+          <Feather
+            name="edit"
+            size={25}
+            color={editMode ? "orange" : "#3ECF8E"}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteMode()}>
-          {deleteMode ? (
-            <MaterialCommunityIcons name="delete" size={25} color="red" />
-          ) : (
-            <MaterialCommunityIcons name="delete" size={25} color="#3ECF8E" />
-          )}
+        <TouchableOpacity onPress={handleDeleteMode}>
+          <MaterialCommunityIcons
+            name="delete"
+            size={25}
+            color={deleteMode ? "red" : "#3ECF8E"}
+          />
         </TouchableOpacity>
       </View>
       <DeleteGoalModal
@@ -194,7 +199,9 @@ const Goals = () => {
     </View>
   );
 };
+
 export default Goals;
+
 const styles = StyleSheet.create({
   box: {
     height: 255,
@@ -211,14 +218,38 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   listContainer: { height: 180 },
-  listTextContainer: { flexDirection: "row", justifyContent: "space-between" },
-  listText: {
+
+  // --- FIXED & NEW STYLES FOR THE LIST ---
+  listItemContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start", // Aligns items to the top, perfect for multi-line text
+    paddingHorizontal: 10,
+    marginVertical: 4,
+  },
+  bulletPoint: {
     fontSize: 16,
     color: "white",
     fontFamily: "Light",
-    marginLeft: 5,
+    marginRight: 6, // Creates space between the bullet and the text
+    lineHeight: 22, // Helps align the bullet with the first line of text
   },
-  deleteGoalButton: { marginRight: 5 },
+  listItemText: {
+    flex: 1, // **Crucial**: Allows the text to take available space and wrap
+    fontSize: 16,
+    color: "white",
+    fontFamily: "Light",
+    lineHeight: 22, // Ensures consistent line spacing on wrap
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    marginLeft: 8, // Adds a small gap between the text and the icons
+  },
+  actionButton: {
+    padding: 2,
+    marginLeft: 4,
+  },
+  // ------------------------------------------
+
   crudBox: {
     width: "95%",
     height: 30,
@@ -231,7 +262,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     position: "absolute",
     bottom: 0,
-  },  noGoalsText: {
+  },
+  noGoalsText: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.6)",
     fontFamily: "Light",

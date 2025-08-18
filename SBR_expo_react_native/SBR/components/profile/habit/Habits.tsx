@@ -143,24 +143,31 @@ const Habits = () => {
           data={habits}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View style={styles.listTextContainer}>
-              <Text style={styles.listText}>• {item.title}</Text>
-              {deleteMode && (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleOpenDeleteModal(item)}
-                >
-                  <MaterialCommunityIcons name="delete" size={20} color="red" />
-                </TouchableOpacity>
-              )}
-              {editMode && (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleOpenEditModal(item)}
-                >
-                  <Feather name="edit" size={20} color="orange" />
-                </TouchableOpacity>
-              )}
+            // Each list item is a row
+            <View style={styles.listItemContainer}>
+              {/* The bullet and title are grouped together */}
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.listItemText}>{item.title}</Text>
+
+              {/* The action buttons are grouped together */}
+              <View style={styles.actionButtonsContainer}>
+                {deleteMode && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleOpenDeleteModal(item)}
+                  >
+                    <MaterialCommunityIcons name="delete" size={20} color="red" />
+                  </TouchableOpacity>
+                )}
+                {editMode && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleOpenEditModal(item)}
+                  >
+                    <Feather name="edit" size={20} color="orange" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
           ListEmptyComponent={() => (
@@ -212,7 +219,6 @@ const Habits = () => {
 
 export default Habits;
 
-// Styles are now matched with Goals component
 const styles = StyleSheet.create({
   box: {
     height: 255,
@@ -230,20 +236,39 @@ const styles = StyleSheet.create({
   },
   listContainer: { height: 180 },
 
-  listTextContainer: { flexDirection: "row", justifyContent: "space-between" },
-
-  listText: {
+  // --- FIXED & NEW STYLES FOR THE LIST ---
+  listItemContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start", // Aligns items to the top, perfect for multi-line text
+    paddingHorizontal: 10,
+    marginVertical: 4,
+  },
+  bulletPoint: {
     fontSize: 16,
     color: "white",
     fontFamily: "Light",
-    marginLeft: 5,
+    marginRight: 6, // Creates space between the bullet and the text
+    lineHeight: 22, // Helps align the bullet with the first line of text
+  },
+  listItemText: {
+    flex: 1, // **Crucial**: Allows the text to take available space and wrap
+    fontSize: 16,
+    color: "white",
+    fontFamily: "Light",
+    lineHeight: 22, // Ensures consistent line spacing on wrap
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    marginLeft: 8, // Adds a small gap between the text and the icons
   },
   actionButton: {
-    marginRight: 5,
     padding: 2,
+    marginLeft: 4,
   },
+  // ------------------------------------------
+
   crudBox: {
-    width: "95%", // Adjusted for the smaller width
+    width: "95%",
     height: 30,
     borderRadius: 20,
     backgroundColor: "#242424",
