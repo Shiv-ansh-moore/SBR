@@ -10,22 +10,22 @@ import { StyleSheet, View } from "react-native";
 const index = () => {
   return (
     <View style={styles.container}>
-      <View style={styles.profilePicUserName}>
-        <ProfilePicture width={130} height={130} />
-        <View style={styles.userNickNameBox}>
-          <UserNickNameBox />
+        <View style={styles.profilePicUserName}>
+          <ProfilePicture width={130} height={130} />
+          <View style={styles.userNickNameBox}>
+            <UserNickNameBox />
+          </View>
         </View>
-      </View>
-      <View style={styles.buttonsHabitsContainer}>
-        <View style={styles.buttons}>
-          <EditProfileButton />
-          <FriendsButton />
-          <TaskCounter />
+        <View style={styles.buttonsHabitsContainer}>
+          <View style={styles.buttons}>
+            <EditProfileButton />
+            <FriendsButton />
+            <TaskCounter />
+          </View>
+          <Habits />
         </View>
-        <Habits />
+        <Goals />
       </View>
-      <Goals />
-    </View>
   );
 };
 export default index;
@@ -34,10 +34,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#121212",
     alignItems: "center",
+    justifyContent: "center",
   },
   userNickNameBox: { width: "45%" },
   profilePicUserName: {
-    marginTop: "8%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
