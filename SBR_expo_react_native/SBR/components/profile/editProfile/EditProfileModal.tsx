@@ -38,8 +38,6 @@ const EditProfileModal = ({
       base64: true,
     });
 
-    console.log(result.assets[0].mimeType);
-
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
@@ -81,7 +79,10 @@ const EditProfileModal = ({
     } else {
       console.log("Successfully uploaded picture:", uploadData);
       // TODO: Add logic here to update the user's profile in your 'users' table
-      // with the path to their new picture.
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ profile_pic: filePath })
+        .eq("id", context.session.user.id);
     }
   };
 
