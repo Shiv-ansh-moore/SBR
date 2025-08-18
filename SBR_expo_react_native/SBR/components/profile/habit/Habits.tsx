@@ -216,7 +216,7 @@ export default Habits;
 const styles = StyleSheet.create({
   box: {
     height: 255,
-    width: 160,
+    width: "45%",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderRadius: 20,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   crudBox: {
-    width: 140, // Adjusted for the smaller width
+    width: "95%", // Adjusted for the smaller width
     height: 30,
     borderRadius: 20,
     backgroundColor: "#242424",

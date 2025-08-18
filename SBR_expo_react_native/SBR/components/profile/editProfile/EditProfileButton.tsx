@@ -27,7 +27,7 @@ export default EditProfileButton;
 const styles = StyleSheet.create({
   button: {
     height: 40,
-    width: 140,
+    width: "100%",
     backgroundColor: "#287150",
     flexDirection: "column",
     justifyContent: "center",

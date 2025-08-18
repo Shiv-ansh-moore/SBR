@@ -198,7 +198,7 @@ export default Goals;
 const styles = StyleSheet.create({
   box: {
     height: 255,
-    width: 333,
+    width: "90%",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderRadius: 20,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   deleteGoalButton: { marginRight: 5 },
   crudBox: {
-    width: 313,
+    width: "95%",
     height: 30,
     borderRadius: 20,
     backgroundColor: "#242424",

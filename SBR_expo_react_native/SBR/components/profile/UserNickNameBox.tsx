@@ -17,20 +17,62 @@ const UserNickNameBox = () => {
   };
 
   useEffect(() => {
+    // Guard Clause: Exit early if there's no session or user.
+    if (!context.session?.user) {
+      return;
+    }
+
+    // Now TypeScript knows context.session.user exists.
+    const userId = context.session.user.id;
+
+    // 1. Fetch initial user data
     const getNames = async () => {
-      if (context.session?.user.id) {
-        const { data, error } = await supabase
-          .from("users")
-          .select("username, nickname")
-          .eq("id", context.session?.user.id);
-        if (data && data.length > 0) {
-          setNickname(data[0].nickname);
-          setUsername(data[0].username);
-        }
+      const { data, error } = await supabase
+        .from("users")
+        .select("username, nickname")
+        .eq("id", userId) // Use the safe userId variable
+        .single();
+
+      if (error) {
+        console.error("Error fetching user data:", error);
+        return;
+      }
+
+      if (data) {
+        setNickname(data.nickname);
+        setUsername(data.username);
       }
     };
     getNames();
-  }, []);
+
+    // 2. Set up the real-time subscription
+    const channel = supabase
+      .channel("public:users")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "users",
+          filter: `id=eq.${userId}`, // Use the safe userId variable
+        },
+        (payload) => {
+          // 3. When a change is received, update the state
+          const updatedUser = payload.new;
+          if (updatedUser) {
+            setNickname(updatedUser.nickname);
+            setUsername(updatedUser.username);
+          }
+        }
+      )
+      .subscribe();
+
+    // 4. Cleanup function to remove the subscription
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [context.session?.user.id]); // The dependency array is correctct if the user ID changes
+
   return (
     <View style={styles.userNameNickName}>
       <View style={{ marginLeft: 8, marginRight: 8 }}>
@@ -72,7 +114,7 @@ export default UserNickNameBox;
 const styles = StyleSheet.create({
   userNameNickName: {
     height: 100,
-    width: 180,
+    width: "100%",
     backgroundColor: "#242424",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",

@@ -1,9 +1,15 @@
-import ProfilePicture from "@/components/profile/ProfilePicture";
-import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
+import { supabase } from "@/lib/supabaseClient";
 import { decode } from "base64-arraybuffer";
 import * as ImagePicker from "expo-image-picker";
-import { Dispatch, SetStateAction, useContext, useState } from "react";
+import { Image } from "expo-image";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
 import {
   Modal,
   StyleSheet,
@@ -11,6 +17,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 
 interface EditProfileModalProps {
@@ -18,18 +26,48 @@ interface EditProfileModalProps {
   setShowEditProfile: Dispatch<SetStateAction<boolean>>;
 }
 
+interface NewImageData {
+  base64: string;
+  mimeType: string;
+}
+
 const EditProfileModal = ({
   showEditProfile,
   setShowEditProfile,
 }: EditProfileModalProps) => {
-  // State for the text inputs
-  const [nickname, setNickname] = useState<string>("");
-  const [username, setUsername] = useState<string>("");
-  const [image, setImage] = useState<string | null>(null);
   const context = useContext(AuthContext);
 
+  const [nickname, setNickname] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageData, setImageData] = useState<NewImageData | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!context.session?.user.id) return;
+
+      const { data, error } = await supabase
+        .from("users")
+        .select("username, nickname")
+        .eq("id", context.session.user.id)
+        .single();
+
+      if (error) {
+        Alert.alert("Error", "Could not load your profile data.");
+        console.error("Error fetching user data:", error);
+      } else if (data) {
+        setNickname(data.nickname || "");
+        setUsername(data.username || "");
+      }
+    };
+
+    if (showEditProfile) {
+      fetchUserData();
+    }
+  }, [showEditProfile, context.session]);
+
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -39,51 +77,80 @@ const EditProfileModal = ({
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.uri && asset.base64 && asset.mimeType) {
+        setImageUri(asset.uri);
+        setImageData({ base64: asset.base64, mimeType: asset.mimeType });
+      } else {
+        Alert.alert("Error", "Could not read the selected image data.");
+      }
     }
-    uploadProfileNewPic(result);
   };
 
-  const uploadProfileNewPic = async (
-    imageUri: ImagePicker.ImagePickerResult
-  ) => {
-    if (!context.session?.user.id || !imageUri.assets) {
-      return;
+  const handleSave = async () => {
+    if (!context.session?.user.id) return;
+    setIsUploading(true);
+
+    try {
+      let profilePicPath: string | undefined = undefined;
+
+      if (imageData) {
+        const fileExt = imageData.mimeType.split("/").pop();
+        const filePath = `${
+          context.session.user.id
+        }-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("profilepic")
+          .upload(filePath, decode(imageData.base64), {
+            contentType: imageData.mimeType,
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+        profilePicPath = filePath;
+      }
+
+      const updates: {
+        nickname?: string;
+        username?: string;
+        profile_pic?: string;
+      } = {};
+      if (nickname.trim()) updates.nickname = nickname.trim();
+      if (username.trim()) updates.username = username.trim();
+      if (profilePicPath) updates.profile_pic = profilePicPath;
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabase
+          .from("users")
+          .update(updates)
+          .eq("id", context.session.user.id);
+
+        if (updateError) throw updateError;
+
+        // *** KEY CHANGE IS HERE ***
+        // After a successful update, tell the AuthProvider to refetch the profile data.
+        await context.refreshProfile();
+      }
+
+      closeModal();
+    } catch (error: any) {
+      console.error("Error saving profile:", error);
+      Alert.alert(
+        "Save Error",
+        error.message || "Failed to save profile changes."
+      );
+    } finally {
+      setIsUploading(false);
     }
+  };
 
-    const image = imageUri.assets[0];
-    if (!image.base64 || !image.mimeType) {
-      console.error("Image picker did not return base64 or mimeType");
-      return;
-    }
-
-    // 1. Get the file extension for the filename
-    const fileExt = image.mimeType.split("/").pop();
-
-    // 2. Create the full file path for Supabase Storage
-    const filePath = `${context.session.user.id}.${fileExt}`;
-
-    // 3. Use the full, original mimeType for the contentType option
-    const contentType = image.mimeType;
-
-    // Now, upload the file
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("profilepic")
-      .upload(filePath, decode(image.base64), {
-        contentType: contentType, // CORRECT: Pass 'image/jpeg'
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.log("Error uploading new profile picture:", uploadError);
-    } else {
-      console.log("Successfully uploaded picture:", uploadData);
-      // TODO: Add logic here to update the user's profile in your 'users' table
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ profile_pic: filePath })
-        .eq("id", context.session.user.id);
-    }
+  const closeModal = () => {
+    setImageUri(null);
+    setImageData(null);
+    setNickname("");
+    setUsername("");
+    setShowEditProfile(false);
   };
 
   return (
@@ -92,49 +159,57 @@ const EditProfileModal = ({
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.heading}>Edit Profile</Text>
-
-            {/* Profile Picture and Change Button */}
             <View style={styles.profilePicContainer}>
-              <ProfilePicture width={100} height={100} />
+              <Image
+                source={imageUri || context.profilePicLink}
+                style={styles.profilePicPreview}
+              />
               <TouchableOpacity
                 style={styles.changePicButton}
                 onPress={pickImage}
+                disabled={isUploading}
               >
                 <Text style={styles.changePicButtonText}>Change</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Nickname and Username Inputs */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Nickname:</Text>
               <TextInput
                 style={styles.input}
-                autoCapitalize="words"
+                value={nickname}
                 onChangeText={setNickname}
-                // value={nickname} // You can bind this to the current nickname
+                placeholder="Enter new nickname"
+                editable={!isUploading}
               />
               <Text style={styles.label}>Username:</Text>
               <TextInput
                 style={styles.input}
-                autoCapitalize="none"
+                value={username}
                 onChangeText={setUsername}
-                // value={username} // You can bind this to the current username
+                placeholder="Enter new username"
+                editable={!isUploading}
               />
             </View>
 
-            {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={() => setShowEditProfile(false)}
+                onPress={closeModal}
+                disabled={isUploading}
               >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton]}
-                // Add your save logic here
+                onPress={handleSave}
+                disabled={isUploading}
               >
-                <Text style={styles.buttonText}>Save</Text>
+                {isUploading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -147,6 +222,14 @@ const EditProfileModal = ({
 export default EditProfileModal;
 
 const styles = StyleSheet.create({
+  profilePicPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#e0e0e0",
+    borderWidth: 1,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+  },
   centeredView: {
     flex: 1,
     justifyContent: "center",
@@ -165,7 +248,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 24,
-    fontFamily: "SemiBold",
+    // fontFamily: "SemiBold",
     color: "white",
     alignSelf: "flex-start",
     marginLeft: 5,
@@ -186,7 +269,7 @@ const styles = StyleSheet.create({
   },
   changePicButtonText: {
     color: "#3ECF8E",
-    fontFamily: "Regular",
+    // fontFamily: "Regular",
     fontSize: 14,
   },
   inputContainer: {
@@ -195,7 +278,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
-    fontFamily: "Regular",
+    // fontFamily: "Regular",
     color: "white",
     marginLeft: 5,
     marginBottom: 5,
@@ -206,7 +289,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderRadius: 20,
     color: "white",
-    fontFamily: "Light",
+    // fontFamily: "Light",
     padding: 10,
     marginBottom: 15,
   },
@@ -227,7 +310,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontFamily: "Regular",
+    // fontFamily: "Regular",
   },
   cancelButton: {
     backgroundColor: "red",
