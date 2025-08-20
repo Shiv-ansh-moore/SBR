@@ -1,10 +1,17 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+
+interface Task {
+  due_date: string | null;
+  title: string;
+  completed: boolean;
+}
 
 const PersonalTasks = () => {
   const context = useContext(AuthContext);
+  const [tasks, setTasks] = useState<Task[]>([]);
   useEffect(() => {
     const getTasks = async () => {
       if (context.session?.user.id) {
@@ -14,7 +21,7 @@ const PersonalTasks = () => {
           .eq("user_id", context.session?.user.id);
         if (error) {
           console.log(error);
-        } else console.log(data);
+        } else setTasks(data);
       }
       getTasks();
     };
