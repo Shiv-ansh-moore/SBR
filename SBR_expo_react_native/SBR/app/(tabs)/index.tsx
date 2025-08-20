@@ -1,4 +1,4 @@
-import PersonalTasks from "@/components/profile/tasks/personalTasks/PersonalTasks";
+import PersonalTasks from "@/components/personalTasks/PersonalTasks";
 import { Text, View, StyleSheet } from "react-native";
 const index = () => {
   return (
