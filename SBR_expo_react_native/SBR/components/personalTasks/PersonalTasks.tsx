@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
-import Entypo from '@expo/vector-icons/Entypo';
+import AntDesign from "@expo/vector-icons/AntDesign";
+import Entypo from "@expo/vector-icons/Entypo";
 import React, { useContext, useEffect, useState } from "react";
 import {
   FlatList,
@@ -39,26 +40,38 @@ const PersonalTasks = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tasks:</Text>
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View>
-            <Text>
-              {item.due_date
-                ? new Date(item.due_date).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "--:--"}
-            </Text>
-            <Text>{item.title}</Text>
-            <TouchableOpacity style={styles.taskProofButton}>
-              <Entypo name="camera" size={30} color="white" />
-            </TouchableOpacity>
-          </View>
-        )}
-      ></FlatList>
+      <View style={styles.tasksContainer}>
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.taskContainer}>
+              <Text style={styles.bullet}>•</Text>
+              <Text style={styles.timeTaskText}>
+                {item.due_date
+                  ? new Date(item.due_date).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "--:--"}
+              </Text>
+              <Text style={styles.standardTaskText}>{item.title}</Text>
+              <TouchableOpacity style={styles.taskProofButton}>
+                <Entypo name="camera" size={30} color="white" />
+              </TouchableOpacity>
+            </View>
+          )}
+        ></FlatList>
+      </View>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.addTaskButton}>
+          <AntDesign name="pluscircle" size={67} color="#3ECF8E" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.proofButton}>
+          <Text style={styles.proofButtonText}>Proof</Text>
+          <Entypo name="camera" size={60} color="#3ECF8E" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -67,7 +80,7 @@ export default PersonalTasks;
 
 const styles = StyleSheet.create({
   container: {
-    height: "95%",
+    height: "90%",
     width: "90%",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",
@@ -81,14 +94,70 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     marginTop: 5,
   },
+  tasksContainer: {
+    marginTop: 25,
+    marginLeft: 25,
+    marginRight: 25,
+    height: "75%",
+  },
+  taskContainer: {
+    flexDirection: "row",
+    alignContent: "center",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  bullet: { fontFamily: "Light", fontSize: 16, color: "white" },
+  standardTaskText: {
+    fontFamily: "Light",
+    fontSize: 16,
+    color: "white",
+    width: 160,
+  },
+  timeTaskText: {
+    fontFamily: "Light",
+    fontSize: 20,
+    color: "white",
+    width: 70,
+  },
   taskProofButton: {
     backgroundColor: "#242424",
     width: 45,
     height: 45,
     borderRadius: 45,
     alignItems: "center",
-    justifyContent:"center",
+    justifyContent: "center",
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
   },
+  addTaskButton: {
+    backgroundColor: "#242424",
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    height: 90,
+    width: 90,
+    borderRadius: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginLeft: 20,
+    marginRight: 20,
+  },
+  proofButton: {
+    backgroundColor: "#242424",
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    borderRadius: 20,
+    height: 90,
+    width: 180,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingLeft: 10,
+    paddingRight: 10,
+  },
+  proofButtonText: { fontFamily: "Bold", color: "white", fontSize: 24 },
 });
