@@ -31,7 +31,6 @@ const PersonalTasks = () => {
         if (error) {
           console.log(error);
         } else setTasks(data);
-        console.log(data);
       }
     };
     getTasks();
@@ -46,8 +45,17 @@ const PersonalTasks = () => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.taskContainer}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.timeTaskText}>
+              <Text
+                style={[styles.bullet, item.completed && styles.completedBullet]}
+              >
+                •
+              </Text>
+              <Text
+                style={[
+                  styles.timeTaskText,
+                  item.completed && styles.completedText,
+                ]}
+              >
                 {item.due_date
                   ? new Date(item.due_date).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -55,9 +63,20 @@ const PersonalTasks = () => {
                     })
                   : "--:--"}
               </Text>
-              <Text style={styles.standardTaskText}>{item.title}</Text>
+              <Text
+                style={[
+                  styles.standardTaskText,
+                  item.completed && styles.completedText,
+                ]}
+              >
+                {item.title}
+              </Text>
               <TouchableOpacity style={styles.taskProofButton}>
-                <Entypo name="camera" size={30} color="white" />
+                {item.completed ? (
+                  <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
+                ) : (
+                  <Entypo name="camera" size={30} color="white" />
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -136,7 +155,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 90,
     width: 90,
-    borderRadius: "100%",
+    borderRadius: 100, // Corrected from "100%" to a number for React Native
     justifyContent: "center",
     alignItems: "center",
   },
@@ -160,4 +179,9 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   proofButtonText: { fontFamily: "Bold", color: "white", fontSize: 24 },
+  completedText: {
+    color: "#3ECF8E",
+    textDecorationLine: "line-through", // This line adds the strikethrough
+  },
+  completedBullet: { color: "#3ECF8E" },
 });
