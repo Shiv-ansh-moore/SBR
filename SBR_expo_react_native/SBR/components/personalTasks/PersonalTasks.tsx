@@ -43,43 +43,64 @@ const PersonalTasks = () => {
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.taskContainer}>
-              <Text
-                style={[styles.bullet, item.completed && styles.completedBullet]}
-              >
-                •
-              </Text>
-              <Text
-                style={[
-                  styles.timeTaskText,
-                  item.completed && styles.completedText,
-                ]}
-              >
-                {item.due_date
-                  ? new Date(item.due_date).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "--:--"}
-              </Text>
-              <Text
-                style={[
-                  styles.standardTaskText,
-                  item.completed && styles.completedText,
-                ]}
-              >
-                {item.title}
-              </Text>
-              <TouchableOpacity style={styles.taskProofButton}>
-                {item.completed ? (
-                  <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
-                ) : (
-                  <Entypo name="camera" size={30} color="white" />
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            // --- CHANGE 1: Check if the task is overdue and not completed ---
+            const now = new Date();
+            const dueDate = item.due_date ? new Date(item.due_date) : null;
+            const isOverdue = dueDate && dueDate < now && !item.completed;
+
+            return (
+              <View style={styles.taskContainer}>
+                <Text
+                  style={[
+                    styles.bullet,
+                    item.completed && styles.completedBullet,
+                    // --- CHANGE 2: Apply overdue style if needed ---
+                    isOverdue && styles.overdue,
+                  ]}
+                >
+                  •
+                </Text>
+                <Text
+                  style={[
+                    styles.timeTaskText,
+                    item.completed && styles.completedText,
+                    // --- CHANGE 2: Apply overdue style if needed ---
+                    isOverdue && styles.overdue,
+                  ]}
+                >
+                  {item.due_date
+                    ? new Date(item.due_date).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "--:--"}
+                </Text>
+                <Text
+                  style={[
+                    styles.standardTaskText,
+                    item.completed && styles.completedText,
+                    // --- CHANGE 2: Apply overdue style if needed ---
+                    isOverdue && styles.overdue,
+                  ]}
+                >
+                  {item.title}
+                </Text>
+                <TouchableOpacity style={styles.taskProofButton}>
+                  {item.completed ? (
+                    <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
+                  ) : (
+                    // --- CHANGE 3: Conditionally set the icon color ---
+                    <Entypo
+                      name="camera"
+                      size={30}
+                      color={isOverdue ? "red" : "white"}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            );
+          }}
         ></FlatList>
       </View>
       <View style={styles.buttonContainer}>
@@ -184,4 +205,8 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through", // This line adds the strikethrough
   },
   completedBullet: { color: "#3ECF8E" },
+  // --- CHANGE 4: Add the new style for overdue items ---
+  overdue: {
+    color: "red",
+  },
 });
