@@ -21,6 +21,7 @@ interface Task {
 const PersonalTasks = () => {
   const context = useContext(AuthContext);
   const [tasks, setTasks] = useState<Task[]>([]);
+
   useEffect(() => {
     const getTasks = async () => {
       if (context.session?.user.id) {
@@ -30,11 +31,36 @@ const PersonalTasks = () => {
           .eq("user_id", context.session?.user.id);
         if (error) {
           console.log(error);
-        } else setTasks(data);
+        } else if (data) {
+          // --- CHANGE: Sort the data before setting the state ---
+          const sortedData = data.sort((a, b) => {
+            // 1. Completed tasks come first
+            if (a.completed !== b.completed) {
+              return a.completed ? -1 : 1;
+            }
+
+            // For tasks with the same completion status:
+            const aDate = a.due_date ? new Date(a.due_date) : null;
+            const bDate = b.due_date ? new Date(b.due_date) : null;
+
+            // 2. Tasks with a due date come before tasks without one
+            if (aDate && !bDate) return -1;
+            if (!aDate && bDate) return 1;
+
+            // 3. If both have due dates, sort them chronologically
+            if (aDate && bDate) {
+              return aDate.getTime() - bDate.getTime();
+            }
+
+            // 4. If both have no due date, keep their original order
+            return 0;
+          });
+          setTasks(sortedData);
+        }
       }
     };
     getTasks();
-  }, []);
+  }, []); // The empty dependency array is correct for a fetch on mount
 
   return (
     <View style={styles.container}>
@@ -44,7 +70,6 @@ const PersonalTasks = () => {
           data={tasks}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => {
-            // --- CHANGE 1: Check if the task is overdue and not completed ---
             const now = new Date();
             const dueDate = item.due_date ? new Date(item.due_date) : null;
             const isOverdue = dueDate && dueDate < now && !item.completed;
@@ -55,7 +80,6 @@ const PersonalTasks = () => {
                   style={[
                     styles.bullet,
                     item.completed && styles.completedBullet,
-                    // --- CHANGE 2: Apply overdue style if needed ---
                     isOverdue && styles.overdue,
                   ]}
                 >
@@ -65,7 +89,6 @@ const PersonalTasks = () => {
                   style={[
                     styles.timeTaskText,
                     item.completed && styles.completedText,
-                    // --- CHANGE 2: Apply overdue style if needed ---
                     isOverdue && styles.overdue,
                   ]}
                 >
@@ -80,7 +103,6 @@ const PersonalTasks = () => {
                   style={[
                     styles.standardTaskText,
                     item.completed && styles.completedText,
-                    // --- CHANGE 2: Apply overdue style if needed ---
                     isOverdue && styles.overdue,
                   ]}
                 >
@@ -90,7 +112,6 @@ const PersonalTasks = () => {
                   {item.completed ? (
                     <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
                   ) : (
-                    // --- CHANGE 3: Conditionally set the icon color ---
                     <Entypo
                       name="camera"
                       size={30}
@@ -205,7 +226,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through", // This line adds the strikethrough
   },
   completedBullet: { color: "#3ECF8E" },
-  // --- CHANGE 4: Add the new style for overdue items ---
   overdue: {
     color: "red",
   },
