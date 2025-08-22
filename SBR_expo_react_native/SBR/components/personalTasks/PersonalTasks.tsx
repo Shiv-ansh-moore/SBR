@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AddTaskModal from "./AddTaskModal";
 
 interface Task {
   due_date: string | null;
@@ -21,6 +22,7 @@ interface Task {
 const PersonalTasks = () => {
   const context = useContext(AuthContext);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [showAddTask, setShowAddTask] = useState<boolean>(false);
 
   useEffect(() => {
     const getTasks = async () => {
@@ -56,6 +58,7 @@ const PersonalTasks = () => {
             return 0;
           });
           setTasks(sortedData);
+          console.log(sortedData);
         }
       }
     };
@@ -96,6 +99,7 @@ const PersonalTasks = () => {
                     ? new Date(item.due_date).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
+                        hour12: false,
                       })
                     : "--:--"}
                 </Text>
@@ -125,7 +129,10 @@ const PersonalTasks = () => {
         ></FlatList>
       </View>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.addTaskButton}>
+        <TouchableOpacity
+          style={styles.addTaskButton}
+          onPress={() => setShowAddTask(true)}
+        >
           <AntDesign name="pluscircle" size={67} color="#3ECF8E" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.proofButton}>
@@ -133,6 +140,7 @@ const PersonalTasks = () => {
           <Entypo name="camera" size={60} color="#3ECF8E" />
         </TouchableOpacity>
       </View>
+      <AddTaskModal setShowAddTask={setShowAddTask} showAddTask={showAddTask} />
     </View>
   );
 };
