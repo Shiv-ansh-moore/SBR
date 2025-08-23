@@ -71,11 +71,12 @@ const UserNickNameBox = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [context.session?.user.id]); // The dependency array is correctct if the user ID changes
+  }, [context.session?.user.id]); // The dependency array is correct if the user ID changes
 
   return (
     <View style={styles.userNameNickName}>
       <View style={{ marginLeft: 8, marginRight: 8 }}>
+        {/* NICKNAME TEXT MODIFICATION */}
         <Text
           style={[
             styles.userNameNickNameText,
@@ -84,6 +85,9 @@ const UserNickNameBox = () => {
               fontSize: 28,
             },
           ]}
+          // Add these two props
+          numberOfLines={1}
+          adjustsFontSizeToFit
         >
           {nickname}
         </Text>
@@ -91,7 +95,7 @@ const UserNickNameBox = () => {
           <View style={styles.usernameRow}>
             <Text
               numberOfLines={1}
-              ellipsizeMode="tail"
+              adjustsFontSizeToFit
               style={[
                 styles.userNameNickNameText,
                 styles.usernameText,
