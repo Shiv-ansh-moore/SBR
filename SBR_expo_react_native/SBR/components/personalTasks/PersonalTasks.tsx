@@ -71,11 +71,42 @@ const PersonalTasks = () => {
       }
     };
     getTasks();
-  }, []); // The empty dependency array is correct for a fetch on mount
+    const taskChannel = supabase
+      .channel(`task-channel-${context.session?.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "task",
+          filter: `user_id=eq.${context.session?.user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setTasks((prevTasks) => [...prevTasks, payload.new as Task]);
+          } else if (payload.eventType === "UPDATE") {
+            setTasks((prevTasks) =>
+              prevTasks.map((task) =>
+                task.id === (payload.new as Task).id
+                  ? (payload.new as Task)
+                  : task
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(taskChannel);
+    };
+  }, [context.session?.user.id]);
 
   const handleTaskPress = (task: Task) => {
     setSelectedTask(task);
     setShowEditModal(true);
+  };
+  const handleTaskDeleted = (taskId: number) => {
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
   return (
@@ -165,6 +196,7 @@ const PersonalTasks = () => {
           setShowEditModal={setShowEditModal}
           showEditModal={showEditModal}
           task={selectedTask}
+          onTaskDeleted={handleTaskDeleted}
         />
       )}
     </View>

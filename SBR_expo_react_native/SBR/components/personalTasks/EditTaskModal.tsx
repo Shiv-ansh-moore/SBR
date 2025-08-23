@@ -2,7 +2,6 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -41,6 +40,7 @@ interface EditTaskModalProps {
   setShowEditModal: Dispatch<SetStateAction<boolean>>;
   showEditModal: boolean;
   task: Task | null;
+  onTaskDeleted: (taskId: number) => void;
 }
 
 interface UserGoal {
@@ -52,6 +52,7 @@ const EditTaskModal = ({
   setShowEditModal,
   showEditModal,
   task,
+  onTaskDeleted,
 }: EditTaskModalProps) => {
   const context = useContext(AuthContext);
   const [dueDate, setDueDate] = useState<Date | null>(null);
@@ -142,6 +143,7 @@ const EditTaskModal = ({
 
   const handleDeleteTask = () => {
     if (!task) return alert("No task selected.");
+
     Alert.alert("Delete Task", "Are you sure? This action cannot be undone.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -152,8 +154,12 @@ const EditTaskModal = ({
             .from("task")
             .delete()
             .eq("id", task.id);
-          if (error) alert("Failed to delete task.");
-          else {
+          if (error) {
+            alert("Failed to delete task.");
+          } else {
+            // Call the callback function with the deleted task's ID
+            onTaskDeleted(task.id);
+            // Then close the modal
             setShowEditModal(false);
           }
         },
@@ -261,10 +267,7 @@ const EditTaskModal = ({
             </TouchableOpacity>
           </View>
           {/* THIS IS THE NEW "DELETE" BUTTON */}
-          <TouchableOpacity
-            style={styles.closeIcon}
-            onPress={handleDeleteTask}
-          >
+          <TouchableOpacity style={styles.closeIcon} onPress={handleDeleteTask}>
             <MaterialCommunityIcons name="delete" size={30} color="red" />
           </TouchableOpacity>
         </View>
