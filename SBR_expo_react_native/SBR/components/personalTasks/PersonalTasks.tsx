@@ -11,12 +11,16 @@ import {
   View,
 } from "react-native";
 import AddTaskModal from "./AddTaskModal";
+import EditTaskModal from "./EditTaskModal";
 
 interface Task {
-  due_date: string | null;
-  title: string;
-  completed: boolean;
   id: number;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  is_public: boolean;
+  goal_id: number | null;
+  completed: boolean;
 }
 
 const PersonalTasks = () => {
@@ -24,12 +28,17 @@ const PersonalTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showAddTask, setShowAddTask] = useState<boolean>(false);
 
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
   useEffect(() => {
     const getTasks = async () => {
       if (context.session?.user.id) {
         const { data, error } = await supabase
           .from("task")
-          .select("due_date, title, completed, id")
+          .select(
+            "id, title, description, due_date, is_public, goal_id, completed"
+          )
           .eq("user_id", context.session?.user.id);
         if (error) {
           console.log(error);
@@ -58,12 +67,16 @@ const PersonalTasks = () => {
             return 0;
           });
           setTasks(sortedData);
-          console.log(sortedData);
         }
       }
     };
     getTasks();
   }, []); // The empty dependency array is correct for a fetch on mount
+
+  const handleTaskPress = (task: Task) => {
+    setSelectedTask(task);
+    setShowEditModal(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -78,52 +91,58 @@ const PersonalTasks = () => {
             const isOverdue = dueDate && dueDate < now && !item.completed;
 
             return (
-              <View style={styles.taskContainer}>
-                <Text
-                  style={[
-                    styles.bullet,
-                    item.completed && styles.completedBullet,
-                    isOverdue && styles.overdue,
-                  ]}
-                >
-                  •
-                </Text>
-                <Text
-                  style={[
-                    styles.timeTaskText,
-                    item.completed && styles.completedText,
-                    isOverdue && styles.overdue,
-                  ]}
-                >
-                  {item.due_date
-                    ? new Date(item.due_date).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })
-                    : "--:--"}
-                </Text>
-                <Text
-                  style={[
-                    styles.standardTaskText,
-                    item.completed && styles.completedText,
-                    isOverdue && styles.overdue,
-                  ]}
-                >
-                  {item.title}
-                </Text>
-                <TouchableOpacity style={styles.taskProofButton}>
-                  {item.completed ? (
-                    <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
-                  ) : (
-                    <Entypo
-                      name="camera"
-                      size={30}
-                      color={isOverdue ? "red" : "white"}
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  handleTaskPress(item);
+                }}
+              >
+                <View style={styles.taskContainer}>
+                  <Text
+                    style={[
+                      styles.bullet,
+                      item.completed && styles.completedBullet,
+                      isOverdue && styles.overdue,
+                    ]}
+                  >
+                    •
+                  </Text>
+                  <Text
+                    style={[
+                      styles.timeTaskText,
+                      item.completed && styles.completedText,
+                      isOverdue && styles.overdue,
+                    ]}
+                  >
+                    {item.due_date
+                      ? new Date(item.due_date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })
+                      : "--:--"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.standardTaskText,
+                      item.completed && styles.completedText,
+                      isOverdue && styles.overdue,
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  <TouchableOpacity style={styles.taskProofButton}>
+                    {item.completed ? (
+                      <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
+                    ) : (
+                      <Entypo
+                        name="camera"
+                        size={30}
+                        color={isOverdue ? "red" : "white"}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
             );
           }}
         ></FlatList>
@@ -141,6 +160,13 @@ const PersonalTasks = () => {
         </TouchableOpacity>
       </View>
       <AddTaskModal setShowAddTask={setShowAddTask} showAddTask={showAddTask} />
+      {selectedTask && (
+        <EditTaskModal
+          setShowEditModal={setShowEditModal}
+          showEditModal={showEditModal}
+          task={selectedTask}
+        />
+      )}
     </View>
   );
 };

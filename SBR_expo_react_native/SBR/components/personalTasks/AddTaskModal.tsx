@@ -116,7 +116,6 @@ const AddTaskModal = ({
       if (taskTitle) {
         const { error } = await supabase.from("task").insert({
           user_id: userId,
-          // FIX: Use the state variable that holds the picker's selected value
           goal_id: selectedGoalId,
           title: taskTitle,
           description: taskDescription,
@@ -227,7 +226,7 @@ const AddTaskModal = ({
               </View>
             ) : (
               <Text
-                style={[styles.dueDateText, { marginLeft: 10, marginTop: 5 }]}
+                style={[styles.dueDateText]}
               >
                 Due Date: --------
               </Text>
@@ -387,6 +386,8 @@ const styles = StyleSheet.create({
   dueDateText: {
     fontFamily: "ExtraLight",
     color: "white",
+    marginLeft: 10,
+    marginTop: 5,
   },
   deleteIcon: {
     marginLeft: 8,
