@@ -1,8 +1,32 @@
 import Entypo from "@expo/vector-icons/Entypo";
 import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import CreateGroupModal from "./CreateGroupModal";
 
 const Header = () => {
+  // State to control the visibility of the dropdown menu
+  const [isMenuVisible, setMenuVisible] = useState(false);
+  const [showAddGroupModal, setShowAddGroupModal] = useState(false);
+
+  // Function to toggle the menu's visibility
+  const toggleMenu = () => {
+    setMenuVisible(!isMenuVisible);
+  };
+
+  // Function to handle the "Create a group" action
+  const handleCreateGroup = () => {
+    setShowAddGroupModal(true);
+    toggleMenu(); // Close the menu after selection
+  };
+
   return (
     <View>
       <View style={styles.container}>
@@ -12,15 +36,43 @@ const Header = () => {
             <Text style={styles.proofButtonText}>Proof</Text>
             <Entypo name="camera" size={25} color="#3ECF8E" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.options}>
+          {/* This button now toggles the menu */}
+          <TouchableOpacity style={styles.options} onPress={toggleMenu}>
             <SimpleLineIcons name="options-vertical" size={25} color="white" />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Dropdown Menu Modal */}
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={toggleMenu} // Allows closing with the back button on Android
+      >
+        <TouchableWithoutFeedback onPress={toggleMenu}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleCreateGroup}
+              >
+                <Text style={styles.menuItemText}>Create a group</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+      <CreateGroupModal
+        showAddGroup={showAddGroupModal}
+        setShowAddGroup={setShowAddGroupModal}
+      />
     </View>
   );
 };
+
 export default Header;
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -50,4 +102,34 @@ const styles = StyleSheet.create({
   },
   proofButtonText: { fontFamily: "Bold", color: "white", fontSize: 15 },
   options: { marginRight: 10 },
+
+  // --- New Styles for the Dropdown Menu ---
+  modalOverlay: {
+    flex: 1,
+  },
+  menuContainer: {
+    position: "absolute",
+    top: 45, // Adjust this value to position the menu correctly below the button
+    right: 15, // Adjust this value to align with the options button
+    backgroundColor: "#242424",
+    borderRadius: 8,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  menuItem: {
+    // paddingVertical: 5 ,
+    // paddingHorizontal: 5,
+  },
+  menuItemText: {
+    color: "white",
+    fontFamily: "Medium",
+    fontSize: 16,
+  },
 });

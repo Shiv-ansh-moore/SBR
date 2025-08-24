@@ -42,14 +42,19 @@ const EditProfileModal = ({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageData, setImageData] = useState<NewImageData | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  // 1. Add state to hold the path of the old profile picture
+  const [oldProfilePicPath, setOldProfilePicPath] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!context.session?.user.id) return;
 
+      // 2. Modify the query to also select the 'profile_pic' path
       const { data, error } = await supabase
         .from("users")
-        .select("username, nickname")
+        .select("username, nickname, profile_pic")
         .eq("id", context.session.user.id)
         .single();
 
@@ -59,6 +64,8 @@ const EditProfileModal = ({
       } else if (data) {
         setNickname(data.nickname || "");
         setUsername(data.username || "");
+        // 3. Store the old profile picture path in the new state variable
+        setOldProfilePicPath(data.profile_pic || null);
       }
     };
 
@@ -127,9 +134,22 @@ const EditProfileModal = ({
           .eq("id", context.session.user.id);
 
         if (updateError) throw updateError;
+        
+        // 4. If the database update is successful, delete the old picture
+        if (profilePicPath && oldProfilePicPath) {
+          const { error: removeError } = await supabase.storage
+            .from("profilepic")
+            .remove([oldProfilePicPath]);
 
-        // *** KEY CHANGE IS HERE ***
-        // After a successful update, tell the AuthProvider to refetch the profile data.
+          if (removeError) {
+            // Log the error but don't stop the process, as the main profile update was successful.
+            console.error(
+              "Error deleting old profile picture:",
+              removeError.message
+            );
+          }
+        }
+
         await context.refreshProfile();
       }
 
@@ -150,6 +170,8 @@ const EditProfileModal = ({
     setImageData(null);
     setNickname("");
     setUsername("");
+    // 5. Reset the old path state when the modal closes
+    setOldProfilePicPath(null);
     setShowEditProfile(false);
   };
 
@@ -221,6 +243,7 @@ const EditProfileModal = ({
 
 export default EditProfileModal;
 
+// Your styles remain the same
 const styles = StyleSheet.create({
   profilePicPreview: {
     width: 100,
