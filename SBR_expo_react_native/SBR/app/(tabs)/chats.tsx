@@ -1,8 +1,15 @@
 // chats.tsx
+import Header from "@/components/chats/Header";
+import Search from "@/components/chats/Search";
 import { StyleSheet, View } from "react-native"; // Import StyleSheet
 
 const chats = () => {
-  return <View style={styles.container}></View>;
+  return (
+    <View style={styles.container}>
+      <Header />
+      <Search />
+    </View>
+  );
 };
 
 // Add styles to make the container fill the screen
