@@ -39,6 +39,18 @@ const CreateGroupModal = ({
     setIsCreating(false);
   };
 
+  const addUserToCreatedGroup = async (groupId: number, userId: string) => {
+    const { error } = await supabase.from("chat_members").insert({
+      group_id: groupId,
+      user_id: userId,
+    });
+
+    if (error) {
+      // This error will be caught by the try...catch block in addGroupSubmitted
+      throw error;
+    }
+  };
+
   const addGroupSubmitted = async () => {
     if (!groupName.trim()) {
       Alert.alert("Validation Error", "Group name is required.");
@@ -60,9 +72,7 @@ const CreateGroupModal = ({
       // 1. Upload image if one was selected
       if (groupImageData) {
         const fileExt = groupImageData.mimeType.split("/").pop();
-        const filePath = `${
-          context.session.user.id
-        }-${Date.now()}.${fileExt}`;
+        const filePath = `${context.session.user.id}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("group-pics")
@@ -82,13 +92,19 @@ const CreateGroupModal = ({
       }
 
       // 2. Insert group data into the 'groups' table
-      const { error: insertError } = await supabase.from("groups").insert({
-        name: groupName.trim(),
-        created_by: context.session.user.id,
-        group_pic : groupAvatarPath
-      });
+      const { data: newGroup, error: insertError } = await supabase
+        .from("groups")
+        .insert({
+          name: groupName.trim(),
+          created_by: context.session.user.id,
+          group_pic: groupAvatarPath,
+        })
+        .select("id")
+        .single();
 
       if (insertError) throw insertError;
+      if (!newGroup) throw new Error("Failed to get new group ID.");
+      await addUserToCreatedGroup(newGroup.id, context.session.user.id);
 
       Alert.alert("Success", "Group created successfully!");
       handleClose();
