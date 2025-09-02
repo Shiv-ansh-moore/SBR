@@ -25,7 +25,8 @@ interface AddGroupMembersProps {
   groupId: string;
 }
 
-interface Friend {
+// Re-used for both members and friends
+interface User {
   id: string;
   username: string;
 }
@@ -36,8 +37,11 @@ const AddGroupMembers = ({
   groupId,
 }: AddGroupMembersProps) => {
   const { session } = useContext(AuthContext);
-  const [addableFriends, setAddableFriends] = useState<Friend[]>([]);
   const user_id = session?.user.id;
+
+  // State for both lists
+  const [existingMembers, setExistingMembers] = useState<User[]>([]);
+  const [addableFriends, setAddableFriends] = useState<User[]>([]);
 
   useEffect(() => {
     if (showModal) {
@@ -49,12 +53,25 @@ const AddGroupMembers = ({
     if (!user_id || !groupId) return;
 
     try {
-      // Step 1: Fetch all of the current user's accepted friends
+      // Step 1: Fetch existing group members with their usernames
+      const { data: membersData, error: membersError } = await supabase
+        .from("chat_members")
+        .select("user:users!chat_members_user_id_fkey(id, username)")
+        .eq("group_id", parseInt(groupId, 10));
+
+      if (membersError) throw membersError;
+
+      const currentMembers = membersData
+        .map((item) => item.user)
+        .filter(Boolean) as User[]; // Filter out any null user joins
+      setExistingMembers(currentMembers);
+      const memberIds = new Set(currentMembers.map((member) => member.id));
+
+      // Step 2: Fetch all of the current user's friends
       const { data: friendsData, error: friendsError } = await supabase
         .from("friends")
         .select(
           `
-          status,
           user1:users!friends_user1_id_fkey(id,username),
           user2:users!friends_user2_id_fkey(id,username)
           `
@@ -64,7 +81,7 @@ const AddGroupMembers = ({
 
       if (friendsError) throw friendsError;
 
-      const allFriends: Friend[] = friendsData.map((friendship) => ({
+      const allFriends: User[] = friendsData.map((friendship) => ({
         id:
           friendship.user1.id === user_id
             ? friendship.user2.id
@@ -75,25 +92,14 @@ const AddGroupMembers = ({
             : friendship.user1.username,
       }));
 
-      // Step 2: Fetch the IDs of users already in the current group
-      const { data: membersData, error: membersError } = await supabase
-        .from("chat_members")
-        .select("user_id")
-        .eq("group_id", parseInt(groupId, 10));
-
-      if (membersError) throw membersError;
-
-      const memberIds = new Set(membersData.map((member) => member.user_id));
-
-      // Step 3: Filter the friends list to show only those not in the group
+      // Step 3: Filter friends list to exclude those already in the group
       const filteredFriends = allFriends.filter(
         (friend) => !memberIds.has(friend.id)
       );
-
       setAddableFriends(filteredFriends);
     } catch (error) {
       console.error("Error fetching data for group members:", error);
-      Alert.alert("Error", "Could not load your friends list.");
+      Alert.alert("Error", "Could not load group and friend data.");
     }
   };
 
@@ -109,12 +115,22 @@ const AddGroupMembers = ({
       console.error("Error adding member to group:", error);
       Alert.alert("Error", "Could not add member to the group.");
     } else {
-      // Refresh the list to remove the newly added member
+      // Refresh both lists
       fetchData();
     }
   };
 
-  const renderFriendItem = ({ item }: { item: Friend }) => (
+  // --- RENDER ITEMS ---
+
+  // Renders a row for an existing member (no button)
+  const renderMemberItem = ({ item }: { item: User }) => (
+    <View style={styles.memberRow}>
+      <Text style={styles.friendName}>{item.username}</Text>
+    </View>
+  );
+
+  // Renders a row for a friend that can be added (with button)
+  const renderFriendItem = ({ item }: { item: User }) => (
     <View style={styles.friendRow}>
       <Text style={styles.friendName}>{item.username}</Text>
       <TouchableOpacity
@@ -130,21 +146,39 @@ const AddGroupMembers = ({
     <Modal animationType="slide" visible={showModal}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.heading}>Add Members</Text>
+          <Text style={styles.heading}>Group Members</Text>
           <TouchableOpacity onPress={() => setShowModal(false)}>
             <Ionicons name="close-circle" size={30} color="#E53935" />
           </TouchableOpacity>
         </View>
 
+        {/* --- UI SPLIT INTO TWO SECTIONS --- */}
+
+        {/* Top half: Existing Members */}
         <View style={styles.listSection}>
-          <Text style={styles.subHeading}>Friends</Text>
+          <Text style={styles.subHeading}>In The Group</Text>
+          <FlatList
+            data={existingMembers}
+            renderItem={renderMemberItem}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <Text style={styles.emptyListText}>
+                This group is empty.
+              </Text>
+            }
+          />
+        </View>
+
+        {/* Bottom half: Friends to Add */}
+        <View style={styles.listSection}>
+          <Text style={styles.subHeading}>Add Friends To Group</Text>
           <FlatList
             data={addableFriends}
             renderItem={renderFriendItem}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={
               <Text style={styles.emptyListText}>
-                All of your friends are in this group.
+                All your friends are in this group.
               </Text>
             }
           />
@@ -173,8 +207,10 @@ const styles = StyleSheet.create({
     fontFamily: "SemiBold",
     color: "white",
   },
+  // Each list section now takes up half the available space
   listSection: {
     flex: 1,
+    marginBottom: 10,
   },
   subHeading: {
     fontSize: 22,
@@ -185,9 +221,20 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(77, 61, 61, 0.50)",
     paddingBottom: 5,
   },
+  // Style for the "Add" row
   friendRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 8,
+  },
+  // Style for the "Existing member" row
+  memberRow: {
+    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     backgroundColor: "#242424",
