@@ -239,7 +239,7 @@ const EditTaskModal = ({
                 })}
               </Text>
               <TouchableOpacity onPress={() => setDueDate(null)}>
-                <MaterialCommunityIcons name="delete" size={20} color="red" />
+                <MaterialCommunityIcons style={styles.deleteIcon}name="delete" size={20} color="red" />
               </TouchableOpacity>
             </View>
           ) : (
@@ -389,7 +389,6 @@ const styles = StyleSheet.create({
   dueDateContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: 10,
     marginTop: 5,
   },
   dueDateText: {
@@ -399,7 +398,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   deleteIcon: {
-    marginLeft: 8,
+    paddingTop:4,
+    marginLeft:5
   },
   deleteButton: { backgroundColor: "#D32F2F" },
   updateButton: { backgroundColor: "#3ECF8E" },
