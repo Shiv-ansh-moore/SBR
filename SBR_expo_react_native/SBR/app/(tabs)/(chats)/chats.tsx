@@ -9,7 +9,7 @@ const chats = () => {
     <View style={styles.container}>
       <Header />
       <Search />
-      <ChatList/>
+      <ChatList />
     </View>
   );
 };

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useContext, useEffect, useState } from "react";
 import {
   FlatList,
@@ -21,6 +22,7 @@ interface Groups {
 const ChatList = () => {
   const context = useContext(AuthContext);
   const [groups, setGroups] = useState<Groups[]>([]);
+  const router = useRouter();
 
   const fetchGroups = async () => {
     if (context.session?.user.id) {
@@ -39,14 +41,25 @@ const ChatList = () => {
   }, []);
 
   return (
-    <View>
+    <View style={styles.container}>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id.toString()}
         renderItem={(item) => {
           return (
-            <TouchableOpacity style={styles.groupContainer}>
-              {/* --- MODIFICATION START --- */}
+            <TouchableOpacity
+              style={styles.groupContainer}
+              onPress={() => {
+                router.push({
+                  pathname: `/(tabs)/(chats)/[id]`,
+                  params: {
+                    id: item.item.id,
+                    name: item.item.name,
+                    pic: item.item.group_pic,
+                  },
+                });
+              }}
+            >
               {item.item.group_pic ? (
                 <Image style={styles.groupImage} source={item.item.group_pic} />
               ) : (
@@ -54,7 +67,6 @@ const ChatList = () => {
                   <FontAwesome name="group" size={24} color="white" />
                 </View>
               )}
-              {/* --- MODIFICATION END --- */}
               <View>
                 <Text style={styles.groupName}>{item.item.name}</Text>
                 <Text style={styles.lastMessage}>Someone Sent</Text>
@@ -74,6 +86,7 @@ const ChatList = () => {
 };
 export default ChatList;
 const styles = StyleSheet.create({
+  container: { height : "85%" },
   groupContainer: {
     flexDirection: "row",
     alignItems: "center",
