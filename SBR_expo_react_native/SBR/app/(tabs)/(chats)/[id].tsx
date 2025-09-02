@@ -4,21 +4,25 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react"; // 1. Import useState
 import {
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView, // 1. Import KeyboardAvoidingView
-  Platform, // 2. Import Platform
 } from "react-native";
+import AddGroupMembers from "@/components/chats/AddGroupMembers";
 
 export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
   const router = useRouter();
+  // 3. Add state to manage the modal's visibility
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+
   return (
-    // 3. Wrap your main view with KeyboardAvoidingView
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -40,7 +44,11 @@ export default function chat() {
         )}
 
         <Text style={styles.title}>{name}</Text>
-        <TouchableOpacity style={styles.groupMembersContainer}>
+        {/* 4. Add the onPress event to open the modal */}
+        <TouchableOpacity
+          style={styles.groupMembersContainer}
+          onPress={() => setShowAddMembersModal(true)}
+        >
           <FontAwesome name="group" size={25} color="#3ECF8E" />
         </TouchableOpacity>
       </View>
@@ -72,7 +80,14 @@ export default function chat() {
           />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView> // End of wrapper
+
+      {/* 5. Render the modal, passing state and the group ID */}
+      <AddGroupMembers
+        showModal={showAddMembersModal}
+        setShowModal={setShowAddMembersModal}
+        groupId={id as string}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
@@ -139,7 +154,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginLeft: 10,
     marginRight: 10,
-    paddingBottom: 5, // Optional: adds a little space below the buttons
+    paddingBottom: 5,
   },
   proofButton: {
     borderWidth: 1,
