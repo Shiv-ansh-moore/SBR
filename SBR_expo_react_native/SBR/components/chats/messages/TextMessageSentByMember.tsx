@@ -1,10 +1,14 @@
-import { StyleSheet, Text, View } from 'react-native'
-const TextMessageSentByMember = () => {
+import { StyleSheet, Text, View } from "react-native";
+
+interface TextMessageSentByMember {
+  message: string;
+}
+const TextMessageSentByMember = ({message}:TextMessageSentByMember) => {
   return (
     <View>
-      <Text>TextMessageSentByMember</Text>
+      <Text>{message}</Text>
     </View>
-  )
-}
-export default TextMessageSentByMember
-const styles = StyleSheet.create({})
+  );
+};
+export default TextMessageSentByMember;
+const styles = StyleSheet.create({});

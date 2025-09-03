@@ -1,8 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native'
-const TextMessageSentByYou = () => {
+
+interface TextMessageSentByYou{
+    message: string
+}
+const TextMessageSentByYou = ({message}:TextMessageSentByYou) => {
   return (
     <View>
-      <Text>TextMessageSentByYou</Text>
+      <Text>{message}</Text>
     </View>
   )
 }

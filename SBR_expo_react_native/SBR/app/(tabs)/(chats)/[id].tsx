@@ -1,3 +1,6 @@
+import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
+import TextMessageSentByMember from "@/components/chats/messages/TextMessageSentByMember";
+import TextMessageSentByYou from "@/components/chats/messages/TextMessageSentByYou";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -14,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
 
 export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
@@ -53,7 +55,6 @@ export default function chat() {
         </TouchableOpacity>
       </View>
       <View style={styles.messagesContainer}>
-        {/* Messages will go here */}
       </View>
       <View style={styles.inputButtonContainer}>
         <View style={styles.inputContainer}>
