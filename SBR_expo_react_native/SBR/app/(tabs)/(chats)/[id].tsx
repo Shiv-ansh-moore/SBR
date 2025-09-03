@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AddGroupMembers from "@/components/chats/AddGroupMembers";
+import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
 
 export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
@@ -80,8 +80,6 @@ export default function chat() {
           />
         </TouchableOpacity>
       </View>
-
-      {/* 5. Render the modal, passing state and the group ID */}
       <AddGroupMembers
         showModal={showAddMembersModal}
         setShowModal={setShowAddMembersModal}

@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import GroupImagePicker, { NewImageData } from "./GroupImagePicker"; // Import the new component
+import GroupImagePicker, { NewImageData } from "../GroupImagePicker"; // Import the new component
 
 interface CreateGroupModalProps {
   showAddGroup: boolean;

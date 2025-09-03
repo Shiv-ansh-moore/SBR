@@ -1,7 +1,7 @@
 // chats.tsx
-import ChatList from "@/components/chats/ChatList";
-import Header from "@/components/chats/Header";
-import Search from "@/components/chats/Search";
+import ChatList from "@/components/chats/chatList/ChatList";
+import Header from "@/components/chats/chatList/Header";
+import Search from "@/components/chats/chatList/Search";
 import { StyleSheet, View } from "react-native"; // Import StyleSheet
 
 const chats = () => {
