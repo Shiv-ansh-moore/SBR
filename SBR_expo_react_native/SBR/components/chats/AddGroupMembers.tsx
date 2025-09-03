@@ -104,20 +104,37 @@ const AddGroupMembers = ({
   };
 
   // Adds a selected friend to the chat_members table
-  const addMember = async (friendId: string) => {
+  const addMember = (friendId: string, friendUsername: string) => {
     if (!groupId) return;
 
-    const { error } = await supabase
-      .from("chat_members")
-      .insert({ group_id: parseInt(groupId, 10), user_id: friendId });
+    Alert.alert(
+      "Confirm", // Title of the alert
+      `Are you sure you want to add ${friendUsername} to the group?`, // Message
+      [
+        // Buttons array
+        {
+          text: "Cancel",
+          style: "cancel", // This button dismisses the alert
+        },
+        {
+          text: "Add",
+          onPress: async () => {
+            // This button runs the logic to add the member
+            const { error } = await supabase
+              .from("chat_members")
+              .insert({ group_id: parseInt(groupId, 10), user_id: friendId });
 
-    if (error) {
-      console.error("Error adding member to group:", error);
-      Alert.alert("Error", "Could not add member to the group.");
-    } else {
-      // Refresh both lists
-      fetchData();
-    }
+            if (error) {
+              console.error("Error adding member to group:", error);
+              Alert.alert("Error", "Could not add member to the group.");
+            } else {
+              // Refresh both lists on success
+              fetchData();
+            }
+          },
+        },
+      ]
+    );
   };
 
   // --- RENDER ITEMS ---
@@ -135,7 +152,7 @@ const AddGroupMembers = ({
       <Text style={styles.friendName}>{item.username}</Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => addMember(item.id)}
+        onPress={() => addMember(item.id, item.username)}
       >
         <Text style={styles.buttonText}>Add</Text>
       </TouchableOpacity>
