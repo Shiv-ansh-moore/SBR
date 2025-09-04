@@ -23,12 +23,15 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     if (userId) {
       const { data, error } = await supabase
         .from("chat_messages")
-        .select("id, created_at, message_type, message_content")
+        .select(
+          "id, created_at, message_type, message_content,users(nickname, profile_pic, username)"
+        )
         .eq("group_id", groupId);
       if (error) {
         console.log(error);
       }
       if (data) {
+        console.log(data)
         setMessages(data);
       }
     }
