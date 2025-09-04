@@ -1,4 +1,5 @@
 import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
+import MessageView from "@/components/chats/messages/MessageView";
 import TextMessageSentByMember from "@/components/chats/messages/TextMessageSentByMember";
 import TextMessageSentByYou from "@/components/chats/messages/TextMessageSentByYou";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -55,6 +56,7 @@ export default function chat() {
         </TouchableOpacity>
       </View>
       <View style={styles.messagesContainer}>
+        <MessageView groupId={parseInt(id as string)}/>
       </View>
       <View style={styles.inputButtonContainer}>
         <View style={styles.inputContainer}>
