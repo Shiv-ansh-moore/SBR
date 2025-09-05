@@ -1,18 +1,27 @@
-import { Json } from "@/database.types";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { useContext, useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import TextMessageSentByMember from "./TextMessageSentByMember";
+import TextMessageSentByYou from "./TextMessageSentByYou";
 
 interface MessageViewProps {
   groupId: number;
+}
+
+interface UserProfile {
+  nickname: string;
+  profile_pic: string | null;
+  username: string;
 }
 
 interface Message {
   id: number;
   created_at: string;
   message_type: string;
-  message_content: Json;
+  message_content: { text: string };
+  user_id: string;
+  users: UserProfile;
 }
 
 const MessageView = ({ groupId }: MessageViewProps) => {
@@ -24,25 +33,43 @@ const MessageView = ({ groupId }: MessageViewProps) => {
       const { data, error } = await supabase
         .from("chat_messages")
         .select(
-          "id, created_at, message_type, message_content,users(nickname, profile_pic, username)"
+          "id, created_at, message_type, message_content, user_id,users(nickname, profile_pic, username)"
         )
-        .eq("group_id", groupId);
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: true });
       if (error) {
         console.log(error);
       }
       if (data) {
-        console.log(data)
-        setMessages(data);
+        setMessages(data as Message[]);
+        console.log(data);
       }
     }
   };
 
   useEffect(() => {
     FetchMessages();
-  }, []);
+  }, [groupId]);
+
   return (
     <View>
-      <Text>MessageView</Text>
+      <FlatList
+        data={messages}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={(item) => {
+          return item.item.message_type === "text" ? (
+            item.item.user_id === userId ? (
+              <TextMessageSentByYou message={item.item.message_content?.text} />
+            ) : (
+              <TextMessageSentByMember
+                message={item.item.message_content?.text}
+              />
+            )
+          ) : (
+            <Text>different message</Text>
+          );
+        }}
+      />
     </View>
   );
 };
