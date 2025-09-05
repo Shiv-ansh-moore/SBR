@@ -1,7 +1,5 @@
 import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
 import MessageView from "@/components/chats/messages/MessageView";
-import TextMessageSentByMember from "@/components/chats/messages/TextMessageSentByMember";
-import TextMessageSentByYou from "@/components/chats/messages/TextMessageSentByYou";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";

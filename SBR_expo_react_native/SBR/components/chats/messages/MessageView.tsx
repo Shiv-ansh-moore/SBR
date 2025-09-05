@@ -63,6 +63,9 @@ const MessageView = ({ groupId }: MessageViewProps) => {
             ) : (
               <TextMessageSentByMember
                 message={item.item.message_content?.text}
+                created_at={item.item.created_at}
+                nickname={item.item.users.nickname}
+                profile_pic={item.item.users.profile_pic}
               />
             )
           ) : (
