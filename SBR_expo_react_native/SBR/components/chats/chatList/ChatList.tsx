@@ -19,33 +19,73 @@ interface Groups {
   id: number;
   name: string;
 }
+
 const ChatList = () => {
   const context = useContext(AuthContext);
   const [groups, setGroups] = useState<Groups[]>([]);
   const router = useRouter();
 
+  // No changes needed to this function
   const fetchGroups = async () => {
     if (context.session?.user.id) {
       const { data, error } = await supabase
         .from("chat_members")
         .select("groups(*)")
         .eq("user_id", context.session.user.id);
+
+      if (error) {
+        console.error("Error fetching groups:", error);
+        return;
+      }
+
       if (data) {
-        const extractedGroups = data.map((item) => item.groups);
+        // Extract the 'groups' object from each item and filter out any potential null values
+        const extractedGroups = data
+          .map((item) => item.groups)
+          .filter((group): group is Groups => group !== null);
         setGroups(extractedGroups);
       }
     }
   };
+
   useEffect(() => {
+    // Perform the initial fetch when the component mounts
     fetchGroups();
-  }, []);
+
+    // Ensure user is logged in before attempting to subscribe
+    if (!context.session?.user.id) return;
+
+    // Set up the real-time subscription
+    const channel = supabase
+      .channel("chat_members_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT", // Listen only for new rows
+          schema: "public",
+          table: "chat_members",
+          filter: `user_id=eq.${context.session.user.id}`, // Important: Only listen for changes related to the current user
+        },
+        (payload) => {
+          console.log("New group membership detected!", payload);
+          // When a change is detected, re-run the fetchGroups function to update the UI
+          fetchGroups();
+        }
+      )
+      .subscribe();
+
+    // Cleanup function: Unsubscribe from the channel when the component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [context.session?.user.id]); // Re-run the effect if the user logs in or out
 
   return (
     <View style={styles.container}>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={(item) => {
+        renderItem={({ item }) => {
           return (
             <TouchableOpacity
               style={styles.groupContainer}
@@ -53,22 +93,22 @@ const ChatList = () => {
                 router.push({
                   pathname: `/(tabs)/(chats)/[id]`,
                   params: {
-                    id: item.item.id,
-                    name: item.item.name,
-                    pic: item.item.group_pic,
+                    id: item.id,
+                    name: item.name,
+                    pic: item.group_pic,
                   },
                 });
               }}
             >
-              {item.item.group_pic ? (
-                <Image style={styles.groupImage} source={item.item.group_pic} />
+              {item.group_pic ? (
+                <Image style={styles.groupImage} source={item.group_pic} />
               ) : (
                 <View style={[styles.groupImage, styles.placeholderContainer]}>
                   <FontAwesome name="group" size={24} color="white" />
                 </View>
               )}
               <View>
-                <Text style={styles.groupName}>{item.item.name}</Text>
+                <Text style={styles.groupName}>{item.name}</Text>
                 <Text style={styles.lastMessage}>Someone Sent</Text>
               </View>
               <View style={styles.lastMessageContainer}>
@@ -84,9 +124,12 @@ const ChatList = () => {
     </View>
   );
 };
+
 export default ChatList;
+
+// --- Styles (no changes) ---
 const styles = StyleSheet.create({
-  container: { height : "85%" },
+  container: { height: "85%" },
   groupContainer: {
     flexDirection: "row",
     alignItems: "center",
