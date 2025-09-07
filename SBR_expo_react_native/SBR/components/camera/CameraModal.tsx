@@ -6,7 +6,14 @@ import {
   useCameraPermissions,
 } from "expo-camera";
 import { Dispatch, SetStateAction, useRef, useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Button,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface CameraModalProps {
   setShowCameraModal: Dispatch<SetStateAction<boolean>>;
@@ -43,27 +50,36 @@ const CameraModal = ({
 
   // --- Renders a loading state ---
   if (!permission) {
+    // Camera permissions are still loading.
     return <View />;
   }
 
   // --- Renders the permission request screen ---
   if (!permission.granted) {
+    // Camera permissions are not granted yet.
     return (
-      <View style={styles.permissionContainer}>
-        <Text style={styles.message}>
-          We need your permission to show the camera
-        </Text>
-        <TouchableOpacity
-          style={styles.permissionButton}
-          onPress={requestPermission}
-        >
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
+      <Modal visible={showCameraModal} animationType="slide" transparent={false}>
+        <View style={styles.permissionContainer}>
+          <Text style={styles.permissionText}>
+            We need your permission to use the camera.
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={requestPermission}
+          >
+            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.closeButtonPermission}
+            onPress={() => setShowCameraModal(false)}
+          >
+            <Ionicons name="close" size={30} color="white" />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     );
   }
 
-  // --- Renders the Camera UI ---
   // --- Renders the Camera UI ---
   return (
     <Modal visible={showCameraModal} animationType="slide" transparent={false}>
@@ -115,45 +131,59 @@ const CameraModal = ({
 
 export default CameraModal;
 
-// --- New styles inspired by PersonalTasks.tsx ---
 const styles = StyleSheet.create({
+  // --- New Styles for Permission Screen ---
   permissionContainer: {
     flex: 1,
+    backgroundColor: "#171717",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#171717", // Match app background
+    padding: 20,
   },
-  message: {
-    textAlign: "center",
-    paddingBottom: 20,
-    color: "white", // Match app text color
+  permissionText: {
+    color: "white",
     fontSize: 18,
-    fontFamily: "Light", // Match app font
+    textAlign: "center",
+    marginBottom: 20,
   },
   permissionButton: {
-    backgroundColor: "#3ECF8E", // Accent color
+    backgroundColor: "#3ECF8E",
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
   },
   permissionButtonText: {
-    color: "white",
+    color: "#171717",
     fontSize: 16,
-    fontFamily: "SemiBold", // Match app font
+    fontWeight: "bold",
   },
+  closeButtonPermission: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: "#242424",
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+  },
+  // --- Existing Styles ---
   modalContainer: {
     flex: 1,
-    backgroundColor: "#171717", // Match app background
+    backgroundColor: "#171717",
   },
   cameraContainer: {
-    flex: 1, // This makes the container take up the available space
+    flex: 1,
   },
   camera: {
     flex: 1,
   },
   headerControls: {
     position: "absolute",
-    top: 20,
+    top: 60, // Increased top margin for better spacing on devices with notches
     left: 20,
     right: 20,
     flexDirection: "row",
@@ -163,10 +193,10 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: "#242424", // Match button background
+    backgroundColor: "#242424",
     justifyContent: "center",
     alignItems: "center",
-    borderColor: "rgba(77, 61, 61, 0.50)", // Match border color
+    borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
   },
   controlsContainer: {
@@ -178,7 +208,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#171717",
   },
   controlButton: {
-    backgroundColor: "#242424", // Match taskProofButton style
+    backgroundColor: "#242424",
     width: 55,
     height: 55,
     borderRadius: 27.5,
