@@ -125,10 +125,17 @@ const CameraModal = ({
     );
   };
 
-  const handleSelectTask = (task: Task) => {
+const handleSelectTask = (task: Task) => {
+  // If the clicked task is already the selected one, unselect it
+  if (selectedTask?.id === task.id) {
+    setSelectedTask(null);
+  } else {
+    // Otherwise, select the new task
     setSelectedTask(task);
-    setShowTaskSelector(false);
-  };
+  }
+  // We can close the modal in either case
+  setShowTaskSelector(false);
+};
 
   const handleSend = async () => {
     if (!imageUri) return;
@@ -250,9 +257,7 @@ const CameraModal = ({
                           : "radio-button-off"
                       }
                       size={24}
-                      color={
-                        selectedTask?.id === item.id ? "#3ECF8E" : "white"
-                      }
+                      color={selectedTask?.id === item.id ? "#3ECF8E" : "white"}
                     />
                     <Text style={styles.selectorItemText}>{item.title}</Text>
                   </TouchableOpacity>
@@ -280,7 +285,10 @@ const CameraModal = ({
           </View>
 
           <View style={styles.bottomControls}>
-            <TouchableOpacity onPress={handleRetake} style={styles.controlButton}>
+            <TouchableOpacity
+              onPress={handleRetake}
+              style={styles.controlButton}
+            >
               <Ionicons name="refresh" size={24} color="white" />
               <Text style={styles.controlButtonText}>Retake</Text>
             </TouchableOpacity>
@@ -301,7 +309,13 @@ const CameraModal = ({
               >
                 <Ionicons name="checkbox-outline" size={20} color="white" />
                 <Text style={styles.selectionButtonText}>
-                  {selectedTask ? "Task ✓" : "Task"}
+                  {selectedTask
+                    ? // If the title is longer than 15 chars, shorten it and add "..."
+                      selectedTask.title.length > 15
+                      ? `${selectedTask.title.substring(0, 15)}...`
+                      : selectedTask.title
+                    : // Otherwise, show the default text
+                      "Task"}
                 </Text>
               </TouchableOpacity>
             </View>
