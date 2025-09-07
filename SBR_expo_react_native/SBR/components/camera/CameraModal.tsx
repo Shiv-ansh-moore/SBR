@@ -7,7 +7,8 @@ import {
 } from "expo-camera";
 import { Dispatch, SetStateAction, useRef, useState } from "react";
 import {
-  Button,
+  // --- MODIFICATION: Replaced ImageBackground with Image ---
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -41,22 +42,16 @@ const CameraModal = ({
   const takePicture = async () => {
     if (!camera.current) return;
     const photo = await camera.current.takePictureAsync();
-    setImageUri(photo?.uri);
-    // TODO: Open a preview of the image
-    console.log("Photo URI:", photo?.uri);
-    // For now, let's close the camera after taking a picture
-    setShowCameraModal(false);
+    if (photo?.uri) {
+      setImageUri(photo.uri);
+    }
   };
 
-  // --- Renders a loading state ---
   if (!permission) {
-    // Camera permissions are still loading.
     return <View />;
   }
 
-  // --- Renders the permission request screen ---
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <Modal visible={showCameraModal} animationType="slide" transparent={false}>
         <View style={styles.permissionContainer}>
@@ -80,17 +75,49 @@ const CameraModal = ({
     );
   }
 
-  // --- Renders the Camera UI ---
+  // --- MODIFICATION: Updated JSX structure for the preview screen ---
+  if (imageUri) {
+    return (
+      <Modal visible={showCameraModal} animationType="slide">
+        <View style={styles.previewContainer}>
+          {/* The image is now a separate component */}
+          <Image source={{ uri: imageUri }} style={styles.previewImage} />
+
+          {/* The controls are now a sibling View, placed underneath the image */}
+          <View style={styles.bottomControls}>
+            <TouchableOpacity
+              onPress={() => setImageUri(undefined)}
+              style={styles.previewButton}
+            >
+              <Ionicons name="refresh" size={24} color="white" />
+              <Text style={styles.previewButtonText}>Retake</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setShowCameraModal(false);
+              }}
+              style={styles.previewButton}
+            >
+              <Ionicons name="checkmark" size={24} color="white" />
+              <Text style={styles.previewButtonText}>Use Photo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal visible={showCameraModal} animationType="slide" transparent={false}>
       <View style={styles.modalContainer}>
-        {/* This new container holds the camera and the overlayed controls */}
         <View style={styles.cameraContainer}>
           <CameraView
             style={styles.camera}
             facing={facing}
             ref={camera}
             flash={flash}
+            mirror={true}
+            animateShutter={false}
           />
           <View style={styles.headerControls}>
             <TouchableOpacity
@@ -102,8 +129,7 @@ const CameraModal = ({
           </View>
         </View>
 
-        {/* The bottom controls remain unchanged */}
-        <View style={styles.controlsContainer}>
+        <View style={styles.bottomControls}>
           <TouchableOpacity onPress={toggleFlash} style={styles.controlButton}>
             <Ionicons
               name={flash === "on" ? "flash" : "flash-off"}
@@ -132,7 +158,6 @@ const CameraModal = ({
 export default CameraModal;
 
 const styles = StyleSheet.create({
-  // --- New Styles for Permission Screen ---
   permissionContainer: {
     flex: 1,
     backgroundColor: "#171717",
@@ -170,7 +195,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
   },
-  // --- Existing Styles ---
   modalContainer: {
     flex: 1,
     backgroundColor: "#171717",
@@ -199,13 +223,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
   },
-  controlsContainer: {
+  bottomControls: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     paddingBottom: 40,
     paddingTop: 20,
     backgroundColor: "#171717",
+    height: 140,
   },
   controlButton: {
     backgroundColor: "#242424",
@@ -231,5 +256,26 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     backgroundColor: "#3ECF8E",
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: "#171717",
+  },
+  // --- MODIFICATION: Updated previewImage style ---
+  previewImage: {
+    flex: 1, // Allows the image to fill the available space
+    // resizeMode: "contain", // Ensures the entire image is visible without cropping
+  },
+  previewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    padding: 10,
+  },
+  previewButtonText: {
+    color: "white",
+    fontSize: 18,
+    marginLeft: 10,
+    fontWeight: "bold",
   },
 });
