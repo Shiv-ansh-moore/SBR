@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   headerControls: {
     position: "absolute",
-    top: 60, // Increased top margin for better spacing on devices with notches
+    top: 20,
     left: 20,
     right: 20,
     flexDirection: "row",
