@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import CameraModal from "../camera/CameraModal";
 import AddTaskModal from "./AddTaskModal";
 import EditTaskModal from "./EditTaskModal";
 
@@ -27,7 +28,7 @@ const PersonalTasks = () => {
   const context = useContext(AuthContext);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showAddTask, setShowAddTask] = useState<boolean>(false);
-
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -185,7 +186,10 @@ const PersonalTasks = () => {
         >
           <AntDesign name="pluscircle" size={67} color="#3ECF8E" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.proofButton}>
+        <TouchableOpacity
+          style={styles.proofButton}
+          onPress={() => setShowCameraModal(true)}
+        >
           <Text style={styles.proofButtonText}>Proof</Text>
           <Entypo name="camera" size={60} color="#3ECF8E" />
         </TouchableOpacity>
@@ -199,6 +203,10 @@ const PersonalTasks = () => {
           onTaskDeleted={handleTaskDeleted}
         />
       )}
+      <CameraModal
+        setShowCameraModal={setShowCameraModal}
+        showCameraModal={showCameraModal}
+      />
     </View>
   );
 };

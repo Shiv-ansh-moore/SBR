@@ -1,8 +1,15 @@
-import { StyleSheet, Text, View } from "react-native";
+import CameraModal from "@/components/camera/CameraModal";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 const progress = () => {
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
+
   return (
     <View style={styles.container}>
-      <Text>progress</Text>
+      <CameraModal
+        setShowCameraModal={setShowCameraModal}
+        showCameraModal={showCameraModal}
+      />
     </View>
   );
 };
