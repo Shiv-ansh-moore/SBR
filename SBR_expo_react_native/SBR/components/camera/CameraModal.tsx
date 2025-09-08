@@ -1,12 +1,14 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
+import { decode } from "base64-arraybuffer";
 import {
   CameraType,
   CameraView,
   FlashMode,
   useCameraPermissions,
 } from "expo-camera";
+import * as FileSystem from "expo-file-system";
 import {
   Dispatch,
   SetStateAction,
@@ -16,6 +18,8 @@ import {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Modal,
@@ -61,6 +65,7 @@ const CameraModal = ({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [showTaskSelector, setShowTaskSelector] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     fetchGroups();
@@ -125,33 +130,76 @@ const CameraModal = ({
     );
   };
 
-const handleSelectTask = (task: Task) => {
-  // If the clicked task is already the selected one, unselect it
-  if (selectedTask?.id === task.id) {
-    setSelectedTask(null);
-  } else {
-    // Otherwise, select the new task
-    setSelectedTask(task);
-  }
-  // We can close the modal in either case
-  setShowTaskSelector(false);
-};
+  const handleSelectTask = (task: Task) => {
+    // If the clicked task is already the selected one, unselect it
+    if (selectedTask?.id === task.id) {
+      setSelectedTask(null);
+    } else {
+      // Otherwise, select the new task
+      setSelectedTask(task);
+    }
+    // We can close the modal in either case
+    setShowTaskSelector(false);
+  };
 
   const handleSend = async () => {
-    if (!imageUri) return;
+    if (!imageUri || !selectedTask || isSending) return;
 
-    console.log("Sending Picture:", imageUri);
-    console.log("To Groups:", selectedGroups);
-    console.log("Associated with Task:", selectedTask?.id);
+    setIsSending(true);
 
-    // TODO: Implement the actual upload and database logic here.
-    // 1. Upload the image file (imageUri) to Supabase Storage.
-    // 2. If successful, get the public URL.
-    // 3. Insert records into your database (e.g., a 'messages' table).
-    //    For each selected group, you might insert a message linking the user, image, and task.
+    try {
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: "base64",
+      });
+      const fileExt = imageUri.split(".").pop() || "jpg";
+      const fileName = `${Date.now()}.${fileExt}`;
+      const contentType = `image/${fileExt}`;
+      const filePath = `${userId}/${selectedTask.id}/${fileName}`;
 
-    alert("Image sent! (See console for details)");
-    setShowCameraModal(false);
+      // Upload image to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("proof-media")
+        .upload(filePath, decode(base64), {
+          contentType,
+        });
+
+      if (uploadError) {
+        Alert.alert("Upload Failed", uploadError.message);
+        throw uploadError;
+      }
+
+      // Insert submission record into the database
+      const { error: insertError } = await supabase
+        .from("proof_submission")
+        .insert({
+          task_id: selectedTask.id,
+          proof_media: filePath,
+          proof_type: "image",
+        });
+
+      if (insertError) {
+        Alert.alert("Submission Failed", insertError.message);
+        throw insertError;
+      }
+
+      const { error: updateTaskError } = await supabase
+        .from("task")
+        .update({ completed: true, completed_at: new Date().toISOString() })
+        .eq("id", selectedTask.id);
+      if (updateTaskError) {
+        //  handle this case more gracefully,
+        Alert.alert("Task Update Failed", updateTaskError.message);
+        throw updateTaskError;
+      }
+
+      // If everything is successful, close the modal
+      setShowCameraModal(false);
+    } catch (error) {
+      console.error("An error occurred during proof submission:", error);
+    } finally {
+      // This ensures the loading state is reset whether it succeeds or fails
+      setIsSending(false);
+    }
   };
 
   if (!permission) {
@@ -273,12 +321,14 @@ const handleSelectTask = (task: Task) => {
         </Modal>
 
         {/* --- Image Preview --- */}
+        {/* --- Image Preview --- */}
         <View style={styles.previewContainer}>
           <Image source={{ uri: imageUri }} style={styles.previewImage} />
           <View style={styles.headerControls}>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowCameraModal(false)}
+              disabled={isSending} // <-- Disable while sending
             >
               <Ionicons name="close" size={30} color="white" />
             </TouchableOpacity>
@@ -288,6 +338,7 @@ const handleSelectTask = (task: Task) => {
             <TouchableOpacity
               onPress={handleRetake}
               style={styles.controlButton}
+              disabled={isSending} // <-- Disable while sending
             >
               <Ionicons name="refresh" size={24} color="white" />
               <Text style={styles.controlButtonText}>Retake</Text>
@@ -297,6 +348,7 @@ const handleSelectTask = (task: Task) => {
               <TouchableOpacity
                 style={styles.selectionButton}
                 onPress={() => setShowGroupSelector(true)}
+                disabled={isSending} // <-- Disable while sending
               >
                 <Ionicons name="people" size={20} color="white" />
                 <Text style={styles.selectionButtonText}>
@@ -306,13 +358,14 @@ const handleSelectTask = (task: Task) => {
               <TouchableOpacity
                 style={styles.selectionButton}
                 onPress={() => setShowTaskSelector(true)}
+                disabled={isSending} // <-- Disable while sending
               >
                 <Ionicons name="checkbox-outline" size={20} color="white" />
                 <Text style={styles.selectionButtonText}>
                   {selectedTask
                     ? // If the title is longer than 15 chars, shorten it and add "..."
-                      selectedTask.title.length > 15
-                      ? `${selectedTask.title.substring(0, 15)}...`
+                      selectedTask.title.length > 8
+                      ? `${selectedTask.title.substring(0, 8)}...`
                       : selectedTask.title
                     : // Otherwise, show the default text
                       "Task"}
@@ -320,8 +373,16 @@ const handleSelectTask = (task: Task) => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-              <Ionicons name="send" size={24} color="#171717" />
+            <TouchableOpacity
+              onPress={handleSend}
+              style={styles.sendButton}
+              disabled={isSending} // <-- Disable while sending
+            >
+              {isSending ? (
+                <ActivityIndicator color="#171717" />
+              ) : (
+                <Ionicons name="send" size={24} color="#171717" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
