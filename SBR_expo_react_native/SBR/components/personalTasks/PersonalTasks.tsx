@@ -14,6 +14,7 @@ import CameraModal from "../camera/CameraModal";
 import AddTaskModal from "./AddTaskModal";
 import EditTaskModal from "./EditTaskModal";
 
+// 1. Update the Task interface to include 'completed_at'
 interface Task {
   id: number;
   title: string;
@@ -22,6 +23,7 @@ interface Task {
   is_public: boolean;
   goal_id: number | null;
   completed: boolean;
+  completed_at: string | null; // Add this field
 }
 
 const sortTasks = (tasks: Task[]): Task[] => {
@@ -47,19 +49,27 @@ const PersonalTasks = () => {
   const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
-  // 1. Add new state to hold the task ID for the camera
   const [taskIdForCamera, setTaskIdForCamera] = useState<number | undefined>();
 
   useEffect(() => {
     const getTasks = async () => {
       if (context.session?.user.id) {
+        // 2. Calculate the timestamp for 12 hours ago
+        const twelveHoursAgo = new Date(
+          Date.now() - 12 * 60 * 60 * 1000
+        ).toISOString();
+
+        // 3. Modify the query to fetch incomplete tasks OR tasks completed in the last 12 hours
         const { data, error } = await supabase
           .from("task")
           .select(
-            "id, title, description, due_date, is_public, goal_id, completed"
+            "id, title, description, due_date, is_public, goal_id, completed, completed_at"
           )
-          .eq("user_id", context.session?.user.id);
+          .eq("user_id", context.session?.user.id)
+          .or(
+            `completed.eq.false,and(completed.eq.true,completed_at.gte.${twelveHoursAgo})`
+          );
+
         if (error) {
           console.log(error);
         } else if (data) {
@@ -109,6 +119,28 @@ const PersonalTasks = () => {
     };
   }, [context.session?.user.id]);
 
+  // 4. Add an effect to periodically filter out old completed tasks from the state
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+      setTasks((currentTasks) =>
+        currentTasks.filter((task) => {
+          // Keep the task if it's not completed
+          if (!task.completed) {
+            return true;
+          }
+          // Keep the task if it was completed within the last 12 hours
+          const completedTime = task.completed_at
+            ? new Date(task.completed_at).getTime()
+            : 0;
+          return completedTime > twelveHoursAgo;
+        })
+      );
+    }, 60 * 60 * 1000); // This check runs every hour
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleTaskPress = (task: Task) => {
     setSelectedTask(task);
     setShowEditModal(true);
@@ -118,7 +150,6 @@ const PersonalTasks = () => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
-  // 2. Create a handler to open the camera with a specific task ID
   const handleCameraPress = (taskId: number) => {
     setTaskIdForCamera(taskId);
     setShowCameraModal(true);
@@ -175,11 +206,10 @@ const PersonalTasks = () => {
                   >
                     {item.title}
                   </Text>
-                  {/* 3. Update the camera button's onPress handler */}
                   <TouchableOpacity
                     style={styles.taskProofButton}
                     onPress={() => handleCameraPress(item.id)}
-                    disabled={item.completed} // Disable button if task is complete
+                    disabled={item.completed}
                   >
                     {item.completed ? (
                       <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
@@ -204,11 +234,10 @@ const PersonalTasks = () => {
         >
           <AntDesign name="pluscircle" size={67} color="#3ECF8E" />
         </TouchableOpacity>
-        {/* 4. Update the generic proof button's onPress handler */}
         <TouchableOpacity
           style={styles.proofButton}
           onPress={() => {
-            setTaskIdForCamera(undefined); // Ensure no specific task is selected
+            setTaskIdForCamera(undefined);
             setShowCameraModal(true);
           }}
         >
@@ -225,7 +254,6 @@ const PersonalTasks = () => {
           onTaskDeleted={handleTaskDeleted}
         />
       )}
-      {/* 5. Pass the taskId state down to the CameraModal */}
       <CameraModal
         setShowCameraModal={setShowCameraModal}
         showCameraModal={showCameraModal}
