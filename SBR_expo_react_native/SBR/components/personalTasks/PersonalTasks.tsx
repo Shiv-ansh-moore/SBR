@@ -24,6 +24,33 @@ interface Task {
   completed: boolean;
 }
 
+// --- NEW: Sorting helper function to keep logic consistent ---
+const sortTasks = (tasks: Task[]): Task[] => {
+  // Create a shallow copy to avoid mutating the original array
+  return [...tasks].sort((a, b) => {
+    // 1. Completed tasks come first (as per your original logic)
+    if (a.completed !== b.completed) {
+      return a.completed ? -1 : 1;
+    }
+
+    // For tasks with the same completion status:
+    const aDate = a.due_date ? new Date(a.due_date) : null;
+    const bDate = b.due_date ? new Date(b.due_date) : null;
+
+    // 2. Tasks with a due date come before tasks without one
+    if (aDate && !bDate) return -1;
+    if (!aDate && bDate) return 1;
+
+    // 3. If both have due dates, sort them chronologically
+    if (aDate && bDate) {
+      return aDate.getTime() - bDate.getTime();
+    }
+
+    // 4. If both have no due date, maintain a stable order (by id)
+    return a.id - b.id;
+  });
+};
+
 const PersonalTasks = () => {
   const context = useContext(AuthContext);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,34 +71,14 @@ const PersonalTasks = () => {
         if (error) {
           console.log(error);
         } else if (data) {
-          // --- CHANGE: Sort the data before setting the state ---
-          const sortedData = data.sort((a, b) => {
-            // 1. Completed tasks come first
-            if (a.completed !== b.completed) {
-              return a.completed ? -1 : 1;
-            }
-
-            // For tasks with the same completion status:
-            const aDate = a.due_date ? new Date(a.due_date) : null;
-            const bDate = b.due_date ? new Date(b.due_date) : null;
-
-            // 2. Tasks with a due date come before tasks without one
-            if (aDate && !bDate) return -1;
-            if (!aDate && bDate) return 1;
-
-            // 3. If both have due dates, sort them chronologically
-            if (aDate && bDate) {
-              return aDate.getTime() - bDate.getTime();
-            }
-
-            // 4. If both have no due date, keep their original order
-            return 0;
-          });
-          setTasks(sortedData);
+          // --- CHANGE: Use the new sorting helper function ---
+          setTasks(sortTasks(data));
         }
       }
     };
+
     getTasks();
+
     const taskChannel = supabase
       .channel(`task-channel-${context.session?.user.id}`)
       .on(
@@ -84,19 +91,29 @@ const PersonalTasks = () => {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setTasks((prevTasks) => [...prevTasks, payload.new as Task]);
+            // --- CHANGE: Add the new task and re-sort the entire list ---
+            setTasks((prevTasks) => sortTasks([...prevTasks, payload.new as Task]));
           } else if (payload.eventType === "UPDATE") {
+            // --- CHANGE: Map the updated task and re-sort the list ---
             setTasks((prevTasks) =>
-              prevTasks.map((task) =>
-                task.id === (payload.new as Task).id
-                  ? (payload.new as Task)
-                  : task
+              sortTasks(
+                prevTasks.map((task) =>
+                  task.id === (payload.new as Task).id
+                    ? (payload.new as Task)
+                    : task
+                )
               )
+            );
+          } else if (payload.eventType === "DELETE") {
+            // --- NEW: Handle real-time deletions ---
+            setTasks((prevTasks) =>
+              prevTasks.filter((task) => task.id !== (payload.old as Task).id)
             );
           }
         }
       )
       .subscribe();
+
     return () => {
       supabase.removeChannel(taskChannel);
     };
@@ -106,11 +123,14 @@ const PersonalTasks = () => {
     setSelectedTask(task);
     setShowEditModal(true);
   };
+
   const handleTaskDeleted = (taskId: number) => {
+    // This function provides an "optimistic" update for a smoother UX
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
   return (
+    // The rest of your JSX remains unchanged...
     <View style={styles.container}>
       <Text style={styles.title}>Tasks:</Text>
       <View style={styles.tasksContainer}>
@@ -121,7 +141,6 @@ const PersonalTasks = () => {
             const now = new Date();
             const dueDate = item.due_date ? new Date(item.due_date) : null;
             const isOverdue = dueDate && dueDate < now && !item.completed;
-
             return (
               <TouchableOpacity
                 onPress={() => {
@@ -213,6 +232,7 @@ const PersonalTasks = () => {
 
 export default PersonalTasks;
 
+// Styles remain unchanged...
 const styles = StyleSheet.create({
   container: {
     height: "90%",
@@ -271,7 +291,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 90,
     width: 90,
-    borderRadius: 100, // Corrected from "100%" to a number for React Native
+    borderRadius: 100,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -297,7 +317,7 @@ const styles = StyleSheet.create({
   proofButtonText: { fontFamily: "Bold", color: "white", fontSize: 24 },
   completedText: {
     color: "#3ECF8E",
-    textDecorationLine: "line-through", // This line adds the strikethrough
+    textDecorationLine: "line-through",
   },
   completedBullet: { color: "#3ECF8E" },
   overdue: {

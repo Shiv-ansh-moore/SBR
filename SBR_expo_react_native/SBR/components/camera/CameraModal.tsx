@@ -26,6 +26,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
@@ -70,7 +71,7 @@ const CameraModal = ({
   useEffect(() => {
     fetchGroups();
     fetchTasks();
-  }, []);
+  }, [showCameraModal]);
 
   const fetchTasks = async () => {
     if (userId) {
@@ -193,6 +194,8 @@ const CameraModal = ({
       }
 
       // If everything is successful, close the modal
+      setImageUri(undefined);
+      setSelectedTask(null);
       setShowCameraModal(false);
     } catch (error) {
       console.error("An error occurred during proof submission:", error);
@@ -244,40 +247,46 @@ const CameraModal = ({
           transparent={true}
           onRequestClose={() => setShowGroupSelector(false)}
         >
-          <View style={styles.selectorContainer}>
-            <View style={styles.selectorContent}>
-              <Text style={styles.selectorTitle}>Select Groups</Text>
-              <FlatList
-                data={groups}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
+          <TouchableWithoutFeedback onPress={() => setShowGroupSelector(false)}>
+            <View style={styles.selectorContainer}>
+              <TouchableWithoutFeedback>
+                <View style={styles.selectorContent}>
+                  <Text style={styles.selectorTitle}>Select Groups</Text>
+                  <FlatList
+                    data={groups}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.selectorItem}
+                        onPress={() => toggleGroupSelection(item.id)}
+                      >
+                        <Ionicons
+                          name={
+                            selectedGroups.includes(item.id)
+                              ? "checkbox"
+                              : "square-outline"
+                          }
+                          size={24}
+                          color={
+                            selectedGroups.includes(item.id)
+                              ? "#3ECF8E"
+                              : "white"
+                          }
+                        />
+                        <Text style={styles.selectorItemText}>{item.name}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
                   <TouchableOpacity
-                    style={styles.selectorItem}
-                    onPress={() => toggleGroupSelection(item.id)}
+                    style={styles.selectorDoneButton}
+                    onPress={() => setShowGroupSelector(false)}
                   >
-                    <Ionicons
-                      name={
-                        selectedGroups.includes(item.id)
-                          ? "checkbox"
-                          : "square-outline"
-                      }
-                      size={24}
-                      color={
-                        selectedGroups.includes(item.id) ? "#3ECF8E" : "white"
-                      }
-                    />
-                    <Text style={styles.selectorItemText}>{item.name}</Text>
+                    <Text style={styles.permissionButtonText}>Done</Text>
                   </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity
-                style={styles.selectorDoneButton}
-                onPress={() => setShowGroupSelector(false)}
-              >
-                <Text style={styles.permissionButtonText}>Done</Text>
-              </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
 
         {/* --- Task Selector Modal --- */}
@@ -287,40 +296,47 @@ const CameraModal = ({
           transparent={true}
           onRequestClose={() => setShowTaskSelector(false)}
         >
-          <View style={styles.selectorContainer}>
-            <View style={styles.selectorContent}>
-              <Text style={styles.selectorTitle}>Select a Task</Text>
-              <FlatList
-                data={tasks}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.selectorItem}
-                    onPress={() => handleSelectTask(item)}
-                  >
-                    <Ionicons
-                      name={
-                        selectedTask?.id === item.id
-                          ? "radio-button-on"
-                          : "radio-button-off"
-                      }
-                      size={24}
-                      color={selectedTask?.id === item.id ? "#3ECF8E" : "white"}
-                    />
-                    <Text style={styles.selectorItemText}>{item.title}</Text>
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={
-                  <Text style={styles.selectorEmptyText}>
-                    No incomplete tasks found.
-                  </Text>
-                }
-              />
+          <TouchableWithoutFeedback onPress={()=> setShowTaskSelector(false)}>
+            <View style={styles.selectorContainer}>
+              <TouchableWithoutFeedback>
+                <View style={styles.selectorContent}>
+                  <Text style={styles.selectorTitle}>Select a Task</Text>
+                  <FlatList
+                    data={tasks}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.selectorItem}
+                        onPress={() => handleSelectTask(item)}
+                      >
+                        <Ionicons
+                          name={
+                            selectedTask?.id === item.id
+                              ? "radio-button-on"
+                              : "radio-button-off"
+                          }
+                          size={24}
+                          color={
+                            selectedTask?.id === item.id ? "#3ECF8E" : "white"
+                          }
+                        />
+                        <Text style={styles.selectorItemText}>
+                          {item.title}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    ListEmptyComponent={
+                      <Text style={styles.selectorEmptyText}>
+                        No incomplete tasks found.
+                      </Text>
+                    }
+                  />
+                </View>
+              </TouchableWithoutFeedback>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
 
-        {/* --- Image Preview --- */}
         {/* --- Image Preview --- */}
         <View style={styles.previewContainer}>
           <Image source={{ uri: imageUri }} style={styles.previewImage} />
