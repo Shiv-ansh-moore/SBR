@@ -43,14 +43,17 @@ interface Groups {
   name: string;
 }
 
+// 1. Add the optional taskId prop here
 interface CameraModalProps {
   setShowCameraModal: Dispatch<SetStateAction<boolean>>;
   showCameraModal: boolean;
+  taskId?: number;
 }
 
 const CameraModal = ({
   setShowCameraModal,
   showCameraModal,
+  taskId, // 2. Destructure the new prop
 }: CameraModalProps) => {
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -69,9 +72,25 @@ const CameraModal = ({
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    fetchGroups();
-    fetchTasks();
+    if (showCameraModal) {
+      fetchGroups();
+      fetchTasks();
+    }
   }, [showCameraModal]);
+
+  // 3. Add this useEffect to auto-select the task
+  useEffect(() => {
+    // This hook runs when an image is taken.
+    // If a taskId prop is provided and the tasks are loaded, it finds and selects the corresponding task.
+    if (imageUri && taskId && tasks) {
+      const taskToSelect = tasks.find((task) => task.id === taskId);
+      if (taskToSelect) {
+        setSelectedTask(taskToSelect);
+      } else {
+        console.warn(`Task with ID ${taskId} not found.`);
+      }
+    }
+  }, [imageUri, taskId, tasks]);
 
   const fetchTasks = async () => {
     if (userId) {
@@ -115,8 +134,6 @@ const CameraModal = ({
     }
   };
 
-  // --- New Handler Functions ---
-
   const handleRetake = () => {
     setImageUri(undefined);
     setSelectedGroups([]);
@@ -132,14 +149,11 @@ const CameraModal = ({
   };
 
   const handleSelectTask = (task: Task) => {
-    // If the clicked task is already the selected one, unselect it
     if (selectedTask?.id === task.id) {
       setSelectedTask(null);
     } else {
-      // Otherwise, select the new task
       setSelectedTask(task);
     }
-    // We can close the modal in either case
     setShowTaskSelector(false);
   };
 
@@ -188,22 +202,22 @@ const CameraModal = ({
         .update({ completed: true, completed_at: new Date().toISOString() })
         .eq("id", selectedTask.id);
       if (updateTaskError) {
-        //  handle this case more gracefully,
         Alert.alert("Task Update Failed", updateTaskError.message);
         throw updateTaskError;
       }
 
-      // If everything is successful, close the modal
-      setImageUri(undefined);
-      setSelectedTask(null);
+      // Reset state and close modal on success
+      handleRetake();
       setShowCameraModal(false);
     } catch (error) {
       console.error("An error occurred during proof submission:", error);
     } finally {
-      // This ensures the loading state is reset whether it succeeds or fails
       setIsSending(false);
     }
   };
+
+  // ... (rest of the component remains the same)
+  // --- RENDER LOGIC ---
 
   if (!permission) {
     return <View />;
@@ -296,7 +310,7 @@ const CameraModal = ({
           transparent={true}
           onRequestClose={() => setShowTaskSelector(false)}
         >
-          <TouchableWithoutFeedback onPress={()=> setShowTaskSelector(false)}>
+          <TouchableWithoutFeedback onPress={() => setShowTaskSelector(false)}>
             <View style={styles.selectorContainer}>
               <TouchableWithoutFeedback>
                 <View style={styles.selectorContent}>
@@ -343,8 +357,11 @@ const CameraModal = ({
           <View style={styles.headerControls}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setShowCameraModal(false)}
-              disabled={isSending} // <-- Disable while sending
+              onPress={() => {
+                handleRetake();
+                setShowCameraModal(false);
+              }}
+              disabled={isSending}
             >
               <Ionicons name="close" size={30} color="white" />
             </TouchableOpacity>
@@ -354,7 +371,7 @@ const CameraModal = ({
             <TouchableOpacity
               onPress={handleRetake}
               style={styles.controlButton}
-              disabled={isSending} // <-- Disable while sending
+              disabled={isSending}
             >
               <Ionicons name="refresh" size={24} color="white" />
               <Text style={styles.controlButtonText}>Retake</Text>
@@ -364,7 +381,7 @@ const CameraModal = ({
               <TouchableOpacity
                 style={styles.selectionButton}
                 onPress={() => setShowGroupSelector(true)}
-                disabled={isSending} // <-- Disable while sending
+                disabled={isSending}
               >
                 <Ionicons name="people" size={20} color="white" />
                 <Text style={styles.selectionButtonText}>
@@ -374,25 +391,26 @@ const CameraModal = ({
               <TouchableOpacity
                 style={styles.selectionButton}
                 onPress={() => setShowTaskSelector(true)}
-                disabled={isSending} // <-- Disable while sending
+                disabled={isSending}
               >
                 <Ionicons name="checkbox-outline" size={20} color="white" />
                 <Text style={styles.selectionButtonText}>
                   {selectedTask
-                    ? // If the title is longer than 15 chars, shorten it and add "..."
-                      selectedTask.title.length > 8
+                    ? selectedTask.title.length > 8
                       ? `${selectedTask.title.substring(0, 8)}...`
                       : selectedTask.title
-                    : // Otherwise, show the default text
-                      "Task"}
+                    : "Task"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               onPress={handleSend}
-              style={styles.sendButton}
-              disabled={isSending} // <-- Disable while sending
+              style={[
+                styles.sendButton,
+                !selectedTask && { backgroundColor: "#ccc" }, // Grey out if no task selected
+              ]}
+              disabled={isSending || !selectedTask}
             >
               {isSending ? (
                 <ActivityIndicator color="#171717" />
@@ -506,7 +524,7 @@ const styles = StyleSheet.create({
   },
   headerControls: {
     position: "absolute",
-    top: 20,
+    top: 60,
     left: 20,
     right: 20,
     flexDirection: "row",
@@ -561,7 +579,6 @@ const styles = StyleSheet.create({
   previewImage: {
     flex: 1,
   },
-  // --- New Styles ---
   controlButtonText: {
     color: "white",
     fontSize: 10,

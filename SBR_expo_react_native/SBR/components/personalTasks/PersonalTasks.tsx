@@ -24,29 +24,18 @@ interface Task {
   completed: boolean;
 }
 
-// --- NEW: Sorting helper function to keep logic consistent ---
 const sortTasks = (tasks: Task[]): Task[] => {
-  // Create a shallow copy to avoid mutating the original array
   return [...tasks].sort((a, b) => {
-    // 1. Completed tasks come first (as per your original logic)
     if (a.completed !== b.completed) {
-      return a.completed ? -1 : 1;
+      return a.completed ? 1 : -1; // Incomplete tasks first
     }
-
-    // For tasks with the same completion status:
     const aDate = a.due_date ? new Date(a.due_date) : null;
     const bDate = b.due_date ? new Date(b.due_date) : null;
-
-    // 2. Tasks with a due date come before tasks without one
     if (aDate && !bDate) return -1;
     if (!aDate && bDate) return 1;
-
-    // 3. If both have due dates, sort them chronologically
     if (aDate && bDate) {
       return aDate.getTime() - bDate.getTime();
     }
-
-    // 4. If both have no due date, maintain a stable order (by id)
     return a.id - b.id;
   });
 };
@@ -58,6 +47,9 @@ const PersonalTasks = () => {
   const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // 1. Add new state to hold the task ID for the camera
+  const [taskIdForCamera, setTaskIdForCamera] = useState<number | undefined>();
 
   useEffect(() => {
     const getTasks = async () => {
@@ -71,7 +63,6 @@ const PersonalTasks = () => {
         if (error) {
           console.log(error);
         } else if (data) {
-          // --- CHANGE: Use the new sorting helper function ---
           setTasks(sortTasks(data));
         }
       }
@@ -91,10 +82,10 @@ const PersonalTasks = () => {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            // --- CHANGE: Add the new task and re-sort the entire list ---
-            setTasks((prevTasks) => sortTasks([...prevTasks, payload.new as Task]));
+            setTasks((prevTasks) =>
+              sortTasks([...prevTasks, payload.new as Task])
+            );
           } else if (payload.eventType === "UPDATE") {
-            // --- CHANGE: Map the updated task and re-sort the list ---
             setTasks((prevTasks) =>
               sortTasks(
                 prevTasks.map((task) =>
@@ -105,7 +96,6 @@ const PersonalTasks = () => {
               )
             );
           } else if (payload.eventType === "DELETE") {
-            // --- NEW: Handle real-time deletions ---
             setTasks((prevTasks) =>
               prevTasks.filter((task) => task.id !== (payload.old as Task).id)
             );
@@ -125,12 +115,16 @@ const PersonalTasks = () => {
   };
 
   const handleTaskDeleted = (taskId: number) => {
-    // This function provides an "optimistic" update for a smoother UX
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
+  // 2. Create a handler to open the camera with a specific task ID
+  const handleCameraPress = (taskId: number) => {
+    setTaskIdForCamera(taskId);
+    setShowCameraModal(true);
+  };
+
   return (
-    // The rest of your JSX remains unchanged...
     <View style={styles.container}>
       <Text style={styles.title}>Tasks:</Text>
       <View style={styles.tasksContainer}>
@@ -181,7 +175,12 @@ const PersonalTasks = () => {
                   >
                     {item.title}
                   </Text>
-                  <TouchableOpacity style={styles.taskProofButton}>
+                  {/* 3. Update the camera button's onPress handler */}
+                  <TouchableOpacity
+                    style={styles.taskProofButton}
+                    onPress={() => handleCameraPress(item.id)}
+                    disabled={item.completed} // Disable button if task is complete
+                  >
                     {item.completed ? (
                       <AntDesign name="checkcircle" size={30} color="#3ECF8E" />
                     ) : (
@@ -205,9 +204,13 @@ const PersonalTasks = () => {
         >
           <AntDesign name="pluscircle" size={67} color="#3ECF8E" />
         </TouchableOpacity>
+        {/* 4. Update the generic proof button's onPress handler */}
         <TouchableOpacity
           style={styles.proofButton}
-          onPress={() => setShowCameraModal(true)}
+          onPress={() => {
+            setTaskIdForCamera(undefined); // Ensure no specific task is selected
+            setShowCameraModal(true);
+          }}
         >
           <Text style={styles.proofButtonText}>Proof</Text>
           <Entypo name="camera" size={60} color="#3ECF8E" />
@@ -222,9 +225,11 @@ const PersonalTasks = () => {
           onTaskDeleted={handleTaskDeleted}
         />
       )}
+      {/* 5. Pass the taskId state down to the CameraModal */}
       <CameraModal
         setShowCameraModal={setShowCameraModal}
         showCameraModal={showCameraModal}
+        taskId={taskIdForCamera}
       />
     </View>
   );
