@@ -51,7 +51,7 @@ const PersonalTasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskIdForCamera, setTaskIdForCamera] = useState<number | undefined>();
 
-    // 1. Create a helper function to check if a task should be in our list
+  // 1. Create a helper function to check if a task should be in our list
   const isTaskVisible = (task: Task): boolean => {
     const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
     if (!task.completed) {
@@ -99,45 +99,7 @@ const PersonalTasks = () => {
           filter: `user_id=eq.${context.session?.user.id}`,
         },
         (payload) => {
-          const newTask = payload.new as Task;
-          const oldId = (payload.old as { id: number })?.id;
-
-          if (payload.eventType === "INSERT") {
-            // Only add the new task if it matches our visibility criteria
-            if (isTaskVisible(newTask)) {
-              setTasks((prevTasks) =>
-                sortTasks([...prevTasks, newTask])
-              );
-            }
-          } else if (payload.eventType === "UPDATE") {
-            const taskShouldBeVisible = isTaskVisible(newTask);
-
-            setTasks((prevTasks) => {
-              const taskExists = prevTasks.some((t) => t.id === newTask.id);
-
-              if (taskShouldBeVisible && taskExists) {
-                // If it should be visible and is already in the list, update it
-                return sortTasks(
-                  prevTasks.map((task) =>
-                    task.id === newTask.id ? newTask : task
-                  )
-                );
-              } else if (taskShouldBeVisible && !taskExists) {
-                 // If it should be visible but ISN'T in the list, add it
-                 return sortTasks([...prevTasks, newTask]);
-              } else if (!taskShouldBeVisible && taskExists) {
-                // If it should NOT be visible but IS in the list, remove it
-                return prevTasks.filter((task) => task.id !== newTask.id);
-              }
-              // Otherwise, the state is correct, do nothing
-              return prevTasks;
-            });
-          } else if (payload.eventType === "DELETE") {
-            // The old ID is all we need for delete
-            setTasks((prevTasks) =>
-              prevTasks.filter((task) => task.id !== oldId)
-            );
-          }
+          getTasks();
         }
       )
       .subscribe();
