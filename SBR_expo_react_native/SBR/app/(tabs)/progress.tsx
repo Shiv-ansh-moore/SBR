@@ -1,15 +1,9 @@
-import CameraModal from "@/components/camera/CameraModal";
-import { useState } from "react";
+import FriendsProofList from "@/components/proof/friendsProofList";
 import { StyleSheet, View } from "react-native";
 const progress = () => {
-  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
-
   return (
     <View style={styles.container}>
-      <CameraModal
-        setShowCameraModal={setShowCameraModal}
-        showCameraModal={showCameraModal}
-      />
+      <FriendsProofList />
     </View>
   );
 };

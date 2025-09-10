@@ -123,6 +123,7 @@ const AddTaskModal = ({
           completed: false,
           is_public: isPublic,
         });
+        setDueDate(null)
         setShowAddTask(false);
         if (error) {
           console.log("Error adding task:", error.message);
