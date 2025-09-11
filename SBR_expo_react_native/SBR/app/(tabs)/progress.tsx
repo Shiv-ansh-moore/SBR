@@ -1,4 +1,4 @@
-import FriendsProofList from "@/components/proof/friendsProofList";
+import FriendsProofList from "@/components/proof/FriendsProofList";
 import { StyleSheet, View } from "react-native";
 const progress = () => {
   return (

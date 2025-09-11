@@ -53,7 +53,6 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     }
   };
 
-  // This useEffect handles the initial fetch and the real-time subscription
   useEffect(() => {
     if (groupId) {
       FetchMessages();
