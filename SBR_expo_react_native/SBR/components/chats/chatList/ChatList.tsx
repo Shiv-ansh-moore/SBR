@@ -54,7 +54,7 @@ const ChatList = () => {
 
     // Ensure user is logged in before attempting to subscribe
     if (!context.session?.user.id) return;
-
+    supabase.realtime.setAuth(context.session?.access_token);
     // Set up the real-time subscription
     const channel = supabase
       .channel("chat_members_changes")

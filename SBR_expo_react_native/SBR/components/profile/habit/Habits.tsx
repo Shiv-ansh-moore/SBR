@@ -25,6 +25,7 @@ const Habits = () => {
   const userId = useContext(AuthContext).session?.user.id;
 
   // State for data and UI modes
+  const context = useContext(AuthContext)
   const [habits, setHabits] = useState<Habit[]>([]);
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
   const [showAddHabit, setShowAddHabit] = useState<boolean>(false);
@@ -51,7 +52,8 @@ const Habits = () => {
       };
 
       getHabits();
-
+      //bug fix
+      supabase.realtime.setAuth(context.session?.access_token);
       habitChannel
         .on(
           "postgres_changes",
@@ -156,7 +158,11 @@ const Habits = () => {
                     style={styles.actionButton}
                     onPress={() => handleOpenDeleteModal(item)}
                   >
-                    <MaterialCommunityIcons name="delete" size={20} color="red" />
+                    <MaterialCommunityIcons
+                      name="delete"
+                      size={20}
+                      color="red"
+                    />
                   </TouchableOpacity>
                 )}
                 {editMode && (

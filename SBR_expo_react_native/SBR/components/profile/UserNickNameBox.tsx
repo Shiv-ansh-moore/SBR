@@ -46,6 +46,8 @@ const UserNickNameBox = () => {
     getNames();
 
     // 2. Set up the real-time subscription
+    //bug fix
+    supabase.realtime.setAuth(context.session?.access_token);
     const channel = supabase
       .channel("public:users")
       .on(

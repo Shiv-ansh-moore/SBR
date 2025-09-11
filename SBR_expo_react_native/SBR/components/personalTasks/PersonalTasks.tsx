@@ -51,24 +51,15 @@ const PersonalTasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskIdForCamera, setTaskIdForCamera] = useState<number | undefined>();
 
-  // 1. Create a helper function to check if a task should be in our list
-  const isTaskVisible = (task: Task): boolean => {
-    const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
-    if (!task.completed) {
-      return true; // Always show incomplete tasks
-    }
-    const completedTime = task.completed_at
-      ? new Date(task.completed_at).getTime()
-      : 0;
-    return completedTime > twelveHoursAgo; // Show if completed recently
-  };
-
   useEffect(() => {
     const getTasks = async () => {
       if (context.session?.user.id) {
+        // 2. Calculate the timestamp for 12 hours ago
         const twelveHoursAgo = new Date(
           Date.now() - 12 * 60 * 60 * 1000
         ).toISOString();
+
+        // 3. Modify the query to fetch incomplete tasks OR tasks completed in the last 12 hours
         const { data, error } = await supabase
           .from("task")
           .select(
@@ -78,8 +69,9 @@ const PersonalTasks = () => {
           .or(
             `completed.eq.false,and(completed.eq.true,completed_at.gte.${twelveHoursAgo})`
           );
+
         if (error) {
-          console.log("Error fetching tasks:", error);
+          console.log(error);
         } else if (data) {
           setTasks(sortTasks(data));
         }
@@ -87,6 +79,8 @@ const PersonalTasks = () => {
     };
 
     getTasks();
+
+    supabase.realtime.setAuth(context.session?.access_token);
 
     const taskChannel = supabase
       .channel(`task-channel-${context.session?.user.id}`)
@@ -99,7 +93,25 @@ const PersonalTasks = () => {
           filter: `user_id=eq.${context.session?.user.id}`,
         },
         (payload) => {
-          getTasks();
+          if (payload.eventType === "INSERT") {
+            setTasks((prevTasks) =>
+              sortTasks([...prevTasks, payload.new as Task])
+            );
+          } else if (payload.eventType === "UPDATE") {
+            setTasks((prevTasks) =>
+              sortTasks(
+                prevTasks.map((task) =>
+                  task.id === (payload.new as Task).id
+                    ? (payload.new as Task)
+                    : task
+                )
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setTasks((prevTasks) =>
+              prevTasks.filter((task) => task.id !== (payload.old as Task).id)
+            );
+          }
         }
       )
       .subscribe();

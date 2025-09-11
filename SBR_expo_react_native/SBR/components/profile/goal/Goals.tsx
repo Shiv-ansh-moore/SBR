@@ -22,6 +22,7 @@ interface Goal {
 
 const Goals = () => {
   const user_id = useContext(AuthContext).session?.user.id;
+  const context = useContext(AuthContext);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [deleteMode, setDeleteMode] = useState<boolean>(false);
   const [showDeleteGoal, setShowDeleteGoal] = useState<boolean>(false);
@@ -44,7 +45,8 @@ const Goals = () => {
         }
       };
       getGoals();
-
+      //bug fix
+      supabase.realtime.setAuth(context.session?.access_token);
       const goalChannel = supabase
         .channel(`goals-channel-${user_id}`)
         .on(
@@ -139,7 +141,11 @@ const Goals = () => {
                     style={styles.actionButton}
                     onPress={() => handleOpenDeleteModal(item)}
                   >
-                    <MaterialCommunityIcons name="delete" size={20} color="red" />
+                    <MaterialCommunityIcons
+                      name="delete"
+                      size={20}
+                      color="red"
+                    />
                   </TouchableOpacity>
                 )}
                 {editMode && (

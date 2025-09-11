@@ -29,7 +29,8 @@ interface Message {
 const MessageView = ({ groupId }: MessageViewProps) => {
   const userId = useContext(AuthContext).session?.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
-  
+  const context = useContext(AuthContext);
+
   // 2. Create a ref for the FlatList
   const flatListRef = useRef<FlatList<Message>>(null);
 
@@ -57,7 +58,7 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     if (groupId) {
       FetchMessages();
     }
-
+    supabase.realtime.setAuth(context.session?.access_token);
     const channel = supabase
       .channel(`chat-group-${groupId}`)
       .on(
@@ -86,7 +87,10 @@ const MessageView = ({ groupId }: MessageViewProps) => {
               ...newMessage,
               users: userData,
             };
-            setMessages((currentMessages) => [...currentMessages, completeMessage]);
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              completeMessage,
+            ]);
           }
         }
       )

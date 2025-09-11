@@ -8,8 +8,6 @@ export default function Index() {
         justifyContent: "center",
         alignItems: "center",
       }}
-    >
-      Whats happenig g
-    </View>
+    ></View>
   );
 }
