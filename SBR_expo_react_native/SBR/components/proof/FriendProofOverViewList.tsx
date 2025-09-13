@@ -10,18 +10,19 @@ import {
 } from "react-native";
 import FriendProofOverView from "./FriendProofOverView";
 
+// --- ✨ Add an optional property for the placeholder ---
 interface Friend {
   id: string;
   username: string;
+  isPlaceholder?: boolean;
 }
 
 const FriendProofOverViewList = () => {
   const userId = useContext(AuthContext).session?.user.id;
-  const [friends, setFriends] = useState<Friend[] | undefined>(undefined); // Initialize as undefined for a clear loading state
+  const [friends, setFriends] = useState<Friend[] | undefined>(undefined);
 
   useEffect(() => {
     const fetchFriends = async () => {
-      // Ensure userId exists before fetching
       if (!userId) return;
 
       const { data, error } = await supabase
@@ -38,17 +39,21 @@ const FriendProofOverViewList = () => {
 
       if (error) {
         console.error("Error fetching confirmed friends:", error);
-        setFriends([]); // Set to empty array on error
+        setFriends([]);
         return;
       }
 
       if (data) {
         const formattedFriends: Friend[] = data.map((friendship) => {
-          // Identify which user is the friend by comparing IDs
           const friend =
             friendship.user1.id === userId ? friendship.user2 : friendship.user1;
           return friend;
         });
+
+        // --- ✨ Logic to add a placeholder item for an odd number of friends ---
+        if (formattedFriends.length % 2 !== 0) {
+          formattedFriends.push({ id: "placeholder", isPlaceholder: true, username: "" });
+        }
 
         setFriends(formattedFriends);
       }
@@ -57,7 +62,6 @@ const FriendProofOverViewList = () => {
     fetchFriends();
   }, [userId]);
 
-  // Render a loading indicator while friends are being fetched
   if (friends === undefined) {
     return (
       <View style={styles.centered}>
@@ -69,8 +73,17 @@ const FriendProofOverViewList = () => {
   return (
     <FlatList
       data={friends}
-      renderItem={({ item }) => <FriendProofOverView friendId={item.id} />}
+      // --- ✨ Conditionally render a placeholder or the real component ---
+      renderItem={({ item }) => {
+        if (item.isPlaceholder) {
+          // This empty view acts as the placeholder.
+          // Its style must match the `flex` and `margin` of the real item's container.
+          return <View style={styles.emptyItem} />;
+        }
+        return <FriendProofOverView friendId={item.id} />;
+      }}
       keyExtractor={(item) => item.id}
+      numColumns={2}
       ListEmptyComponent={
         <View style={styles.centered}>
           <Text>You haven't added any friends yet.</Text>
@@ -90,6 +103,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
+  },
+  // --- ✨ Style for the empty placeholder item ---
+  // It needs `flex: 1` and the same margin as the real component's container
+  // to correctly occupy the grid space.
+  emptyItem: {
+    flex: 1,
+    margin: 8,
   },
 });
