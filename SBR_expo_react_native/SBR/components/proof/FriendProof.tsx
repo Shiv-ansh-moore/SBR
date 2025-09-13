@@ -22,7 +22,6 @@ const FriendProof = ({ proof }: FriendProofProps) => {
   const [loading, setLoading] = useState(true);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [profilePicLink, setProfilePicLink] = useState<string | null>(null);
-  // ✨ 1. Add state to store the image's aspect ratio
   const [imageAspectRatio, setImageAspectRatio] = useState(1);
 
   useEffect(() => {
@@ -69,7 +68,7 @@ const FriendProof = ({ proof }: FriendProofProps) => {
     };
 
     fetchMedia();
-  }, [proof.proof_media, proof.profile_pic]); // Add profile_pic to dependency array
+  }, [proof.proof_media, proof.profile_pic]);
 
   return (
     <View style={styles.container}>
@@ -84,11 +83,13 @@ const FriendProof = ({ proof }: FriendProofProps) => {
       </View>
 
       {/* --- Proof Image --- */}
-      <View style={styles.imageContainer}>
+      {/* ✨ FIX 1: Apply a conditional style to the container for the loading state */}
+      <View
+        style={[styles.imageContainer, loading && styles.loadingContainer]}
+      >
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : signedUrl ? (
-          // ✨ 3. Apply the dynamic aspect ratio to the image style
           <Image
             source={{ uri: signedUrl }}
             style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
@@ -134,12 +135,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
     overflow: "hidden",
   },
+  // ✨ FIX 2: Add a new style for the loading container
+  loadingContainer: {
+    aspectRatio: 4 / 5, // A standard portrait aspect ratio
+    justifyContent: "center",
+    alignItems: "center",
+  },
   proofImage: {
     width: "100%",
   },
   noImageText: {
     color: "#888",
-    padding: 20, // Add some padding for the "no image" text
+    padding: 20,
   },
   taskTitle: {
     fontFamily: "Regular",
@@ -157,7 +164,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#888",
     marginTop: 4,
-    marginBottom:4,
+    marginBottom: 4,
     fontFamily: "ExtraLight",
   },
   bottomContainer: {

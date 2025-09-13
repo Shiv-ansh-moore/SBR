@@ -1,9 +1,9 @@
-import FriendsProofList from "@/components/proof/FriendsProofList";
+import FriendProofOverViewList from "@/components/proof/FriendProofOverViewList";
 import { StyleSheet, View } from "react-native";
 const progress = () => {
   return (
     <View style={styles.container}>
-      <FriendsProofList />
+      <FriendProofOverViewList />
     </View>
   );
 };

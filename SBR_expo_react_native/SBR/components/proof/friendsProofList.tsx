@@ -58,7 +58,6 @@ const FriendsProofList = () => {
 export default FriendsProofList;
 
 const styles = StyleSheet.create({
-  // Change container to ensure it fills the available space
   container: {
     flex: 1,
     width: "90%",
