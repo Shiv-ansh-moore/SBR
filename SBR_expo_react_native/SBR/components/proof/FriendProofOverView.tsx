@@ -1,12 +1,16 @@
+// FriendProofOverView.js
+
 import { supabase } from "@/lib/supabaseClient";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react"; // ✨ Import Fragment
 import {
   ActivityIndicator,
   Image,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import FriendDetailModal from "./FriendDetailModal"; // ✨ Import the new modal
 
 // --- Interfaces and Data Fetching (no change) ---
 interface FriendProofOverViewProps {
@@ -35,7 +39,7 @@ const getFriendData = async (
   return data?.[0] || null;
 };
 
-// --- Component (Corrected for new requirement) ---
+// --- Component (Updated) ---
 const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
   const [overview, setOverview] = useState<ProofOverview | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -43,6 +47,7 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
   const [proofMediaLink, setProofMediaLink] = useState<string | null>(null);
   const [mediaLoading, setMediaLoading] = useState(true);
   const [imageAspectRatio, setImageAspectRatio] = useState(1);
+  const [isModalVisible, setModalVisible] = useState(false); // ✨ Add modal state
 
   // --- useEffect hooks (no change) ---
   useEffect(() => {
@@ -99,7 +104,7 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
     fetchMedia();
   }, [overview]);
 
-  if (dataLoading) { // Note: Only checking dataLoading initially
+  if (dataLoading) {
     return (
       <View style={[styles.container, styles.loaderContainer]}>
         <ActivityIndicator size="large" color="#3ECF8E" />
@@ -107,7 +112,6 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
     );
   }
 
-  // ✨ FIX 1: Only exit completely if the entire 'overview' object is missing.
   if (!overview) {
     return (
       <View style={[styles.container, styles.loaderContainer]}>
@@ -116,48 +120,60 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
     );
   }
 
-  // By this point, TypeScript knows 'overview' is not null.
   return (
-    <View style={styles.container}>
-      {/* ✨ FIX 2: Conditionally render the image or a placeholder. */}
-      {proofMediaLink && !mediaLoading ? (
-        <Image
-          source={{ uri: proofMediaLink }}
-          style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
-        />
-      ) : (
-        <View style={styles.placeholderContainer}>
-          {mediaLoading ? (
-            <ActivityIndicator color="#3ECF8E" />
-          ) : (
-            <Text style={styles.noProofText}>No Recent Proof</Text>
+    // ✨ Use Fragment to return multiple elements
+    <Fragment>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={() => setModalVisible(true)} // ✨ Open modal on press
+      >
+        {proofMediaLink && !mediaLoading ? (
+          <Image
+            source={{ uri: proofMediaLink }}
+            style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
+          />
+        ) : (
+          <View style={styles.placeholderContainer}>
+            {mediaLoading ? (
+              <ActivityIndicator color="#3ECF8E" />
+            ) : (
+              <Text style={styles.noProofText}>No Recent Proof</Text>
+            )}
+          </View>
+        )}
+
+        <View style={styles.infoOverlay}>
+          <View>
+            <Text style={styles.nicknameText}>{overview.nickname}</Text>
+            <Text style={[styles.statsText, styles.doneText]}>
+              Done: {overview.task_done}
+            </Text>
+            <Text style={[styles.statsText, styles.todoText]}>
+              ToDo: {overview.task_left}
+            </Text>
+          </View>
+
+          {profilePicLink && (
+            <Image source={{ uri: profilePicLink }} style={styles.profilePic} />
           )}
         </View>
-      )}
+      </TouchableOpacity>
 
-      {/* This overlay will now always show as long as 'overview' data exists. */}
-      <View style={styles.infoOverlay}>
-        <View>
-          <Text style={styles.nicknameText}>{overview.nickname}</Text>
-          <Text style={[styles.statsText, styles.doneText]}>
-            Done: {overview.task_done}
-          </Text>
-          <Text style={[styles.statsText, styles.todoText]}>
-            ToDo: {overview.task_left}
-          </Text>
-        </View>
-
-        {profilePicLink && (
-          <Image source={{ uri: profilePicLink }} style={styles.profilePic} />
-        )}
-      </View>
-    </View>
+      {/* ✨ Render the Modal */}
+      <FriendDetailModal
+        isVisible={isModalVisible}
+        onClose={() => setModalVisible(false)}
+        friendId={friendId}
+        initialOverview={overview}
+        profilePicLink={profilePicLink}
+      />
+    </Fragment>
   );
 };
 
 export default FriendProofOverView;
 
-// --- Styles (with one addition) ---
+// --- Styles (no change) ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -173,9 +189,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // ✨ Added style for the placeholder view
   placeholderContainer: {
-    height: 250,
+    flex: 1,
+    minHeight: 250,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#2a2a2a",

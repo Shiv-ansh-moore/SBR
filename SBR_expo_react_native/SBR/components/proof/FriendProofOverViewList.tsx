@@ -2,11 +2,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { useContext, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  FlatList,
   StyleSheet,
   Text,
   View,
-  FlatList,
-  ActivityIndicator,
 } from "react-native";
 import FriendProofOverView from "./FriendProofOverView";
 
@@ -46,13 +46,19 @@ const FriendProofOverViewList = () => {
       if (data) {
         const formattedFriends: Friend[] = data.map((friendship) => {
           const friend =
-            friendship.user1.id === userId ? friendship.user2 : friendship.user1;
+            friendship.user1.id === userId
+              ? friendship.user2
+              : friendship.user1;
           return friend;
         });
 
         // --- ✨ Logic to add a placeholder item for an odd number of friends ---
         if (formattedFriends.length % 2 !== 0) {
-          formattedFriends.push({ id: "placeholder", isPlaceholder: true, username: "" });
+          formattedFriends.push({
+            id: "placeholder",
+            isPlaceholder: true,
+            username: "",
+          });
         }
 
         setFriends(formattedFriends);
@@ -104,10 +110,8 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 8,
+    marginTop: 20,
   },
-  // --- ✨ Style for the empty placeholder item ---
-  // It needs `flex: 1` and the same margin as the real component's container
-  // to correctly occupy the grid space.
   emptyItem: {
     flex: 1,
     margin: 8,

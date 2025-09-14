@@ -84,9 +84,7 @@ const FriendProof = ({ proof }: FriendProofProps) => {
 
       {/* --- Proof Image --- */}
       {/* ✨ FIX 1: Apply a conditional style to the container for the loading state */}
-      <View
-        style={[styles.imageContainer, loading && styles.loadingContainer]}
-      >
+      <View style={[styles.imageContainer, loading && styles.loadingContainer]}>
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : signedUrl ? (
@@ -111,7 +109,11 @@ const FriendProof = ({ proof }: FriendProofProps) => {
 export default FriendProof;
 
 const styles = StyleSheet.create({
-  container: { width: "100%" },
+  container: {
+    width: "90%",
+    alignSelf: "center", 
+    marginTop: 20,
+  },
   header: {
     flexDirection: "row",
     alignItems: "flex-end",

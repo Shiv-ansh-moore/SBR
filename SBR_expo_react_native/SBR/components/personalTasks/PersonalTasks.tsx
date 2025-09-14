@@ -276,6 +276,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderRadius: 20,
     backgroundColor: "#171717",
+    alignSelf: "center", // This centers the component horizontally in its parent
+    marginTop: 20,
   },
   title: {
     fontFamily: "SemiBold",
