@@ -1,35 +1,30 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { useContext, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  View,
-  TextStyle, // Import TextStyle for type safety
-} from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-// --- Interfaces (No Change) ---
+// TypeScript interface to match the data from your SQL function
 interface TaskCounts {
   completed_today: number;
   pending_today: number;
   overdue: number;
 }
 
-// --- Main Component ---
 const TaskCounter = () => {
   const { session } = useContext(AuthContext);
   const [counts, setCounts] = useState<TaskCounts | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Data fetching logic is unchanged
   useEffect(() => {
     if (!session?.user?.id) return;
     const userId = session.user.id;
+
     const fetchCounts = async () => {
+      // This calls the SQL function you provided
       const { data, error } = await supabase
         .rpc("get_user_task_counts", { p_user_id: userId })
         .single();
+
       if (error) {
         console.error("Error fetching task counts:", error);
         setCounts(null);
@@ -38,7 +33,10 @@ const TaskCounter = () => {
       }
       setLoading(false);
     };
+
     fetchCounts();
+
+    // Set up a real-time listener to re-fetch counts when tasks change
     const taskChannel = supabase
       .channel(`task-count-channel-${userId}`)
       .on(
@@ -52,20 +50,22 @@ const TaskCounter = () => {
         () => fetchCounts()
       )
       .subscribe();
+
+    // Cleanup subscription on component unmount
     return () => {
       supabase.removeChannel(taskChannel);
     };
   }, [session?.user?.id]);
 
+  // --- Rendering Logic ---
   const renderContent = () => {
     if (loading) {
       return <ActivityIndicator size="large" color="#3ECF8E" />;
     }
     if (!counts) {
-      return <Text style={styles.errorText}>Error</Text>;
+      return <Text style={styles.errorText}>Error loading tasks</Text>;
     }
 
-    // The "Scoreboard" layout
     return (
       <>
         {/* Top-Left Corner: Completed */}
@@ -75,7 +75,7 @@ const TaskCounter = () => {
           </Text>
         </View>
 
-        {/* Center Stage: Pending */}
+        {/* Center: Pending Tasks */}
         <View style={styles.center}>
           <Text style={styles.centerNumber}>{counts.pending_today}</Text>
           <Text style={styles.centerLabel}>Pending</Text>
@@ -83,10 +83,10 @@ const TaskCounter = () => {
 
         {/* Bottom-Right Corner: Overdue */}
         <View style={[styles.corner, styles.bottomRight]}>
-          {/* ✨ FIX 1: Apply style conditionally here in the JSX */}
           <Text
             style={[
               styles.cornerText,
+              // Apply red color only if overdue count is > 0
               counts.overdue > 0 ? styles.redText : styles.neutralText,
             ]}
           >
@@ -102,7 +102,7 @@ const TaskCounter = () => {
 
 export default TaskCounter;
 
-// Styles for the Scoreboard layout
+// --- Styles ---
 const styles = StyleSheet.create({
   box: {
     height: 120,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#171717",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
+    position: "relative", // Needed for absolute positioning of corners
   },
   center: {
     alignItems: "center",
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
   corner: {
-    position: "absolute",
+    position: "absolute", // Position corners relative to the parent 'box'
   },
   topLeft: {
     top: 8,
@@ -146,14 +146,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   greenText: {
-    color: "#3ECF8E",
+    color: "#3ECF8E", // Green for completed
   },
-  // ✨ FIX 2: Replace the function with two static style objects.
   redText: {
-    color: "#FF6347",
+    color: "#FF6347", // Red for overdue
   },
   neutralText: {
-    color: "#AAAAAA",
+    color: "#AAAAAA", // Grey for zero overdue
   },
   errorText: {
     fontFamily: "SemiBold",

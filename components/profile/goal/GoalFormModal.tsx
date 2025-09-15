@@ -42,6 +42,7 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
         if (error) {
           console.log(error);
         }
+        setDueDate(null)
       } else {
         alert("Ttile Required");
       }
