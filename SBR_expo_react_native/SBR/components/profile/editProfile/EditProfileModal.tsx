@@ -214,6 +214,21 @@ const EditProfileModal = ({
               />
             </View>
 
+            <TouchableOpacity
+                style={[styles.button, styles.signOutButton]}
+                onPress={async () => {
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (error) {
+                    console.error("Error signing out:", error);
+                    Alert.alert("Error", "Could not sign out.");
+                  }
+                }}
+                disabled={isUploading}
+              >
+                <Text style={styles.buttonText}>Sign Out</Text>
+              </TouchableOpacity>
+
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
@@ -340,5 +355,8 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: "#3ECF8E",
+  },
+  signOutButton: {
+    marginTop:3, 
   },
 });

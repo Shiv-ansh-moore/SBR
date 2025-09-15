@@ -1,6 +1,6 @@
 import PersonalTasks from "@/components/personalTasks/PersonalTasks";
 import FriendProofOverViewList from "@/components/proof/FriendProofOverViewList";
-import FriendsProofList from "@/components/proof/FriendsProofList";
+import FriendsProofList from "@/components/proof/friendsProofList";
 import React, { useRef } from "react"; // ✨ 1. Import useRef
 import {
   Animated, // ✨ 2. Import Animated
@@ -31,7 +31,7 @@ const index = () => {
 
           const dotWidth = scrollX.interpolate({
             inputRange,
-            outputRange: [8, 9, 8], // Inactive, Active, Inactive width
+            outputRange: [8, 16, 8], // Inactive, Active, Inactive width
             extrapolate: "clamp",
           });
 
