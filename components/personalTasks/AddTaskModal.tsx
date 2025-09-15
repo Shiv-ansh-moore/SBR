@@ -123,8 +123,9 @@ const AddTaskModal = ({
           completed: false,
           is_public: isPublic,
         });
-        setDueDate(null)
         setShowAddTask(false);
+        setDueDate(null);
+        setSelectedGoalId(null);
         if (error) {
           console.log("Error adding task:", error.message);
           alert("Failed to add task.");
@@ -226,11 +227,7 @@ const AddTaskModal = ({
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text
-                style={[styles.dueDateText]}
-              >
-                Due Date: --------
-              </Text>
+              <Text style={[styles.dueDateText]}>Due Date: --------</Text>
             )}
 
             <View style={styles.buttonContainer}>
