@@ -1,50 +1,35 @@
-# Welcome to your Expo app 👋
+# SBR
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Full stack app using epxo go for front end and supabase for back end.
 
-## Get started
+## Task Page
 
-1. Install dependencies
+### Personal Tasks
+![](/SBR/screenshots/Screenshot_20250915-124755.png)
 
-   ```bash
-   npm install
-   ```
+View tasks add tasks and take proofs of tasks
 
-2. Start the app
+### Friend ToDo's
+![](/SBR/screenshots/Screenshot_20250915-131747.png)
+Can click on friend cards to see what tasks they hav left to do and what tasks they have done. 
+![](/SBR/screenshots/Screenshot_20250915-173302.png)
 
-   ```bash
-   npx expo start
-   ```
+### Feed
+Feed showing all friends shared tasks
+![](/SBR/screenshots/Screenshot_20250915-125124.png)
 
-In the output, you'll find options to open the app in a
+## Profile
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+![](/SBR/screenshots/Screenshot_20250915-131725.png)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Chats
 
-## Get a fresh project
+![](/SBR/screenshots/Screenshot_20250915-124816.png)
+![](/SBR/screenshots/Screenshot_20250915-132551.png)
 
-When you're ready, run:
+## Camera
 
-```bash
-npm run reset-project
-```
+![](/SBR/screenshots/Screenshot_20250915-173736.png)
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Camera preview
+![](/SBR/screenshots/Screenshot_20250915-173802.png)
