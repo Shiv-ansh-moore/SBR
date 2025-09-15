@@ -4,31 +4,33 @@ Full stack app using epxo go for front end and supabase for back end.
 
 ## Task Page
 
-### Personal Tasksscreenshots/Screenshot_20250915-124755.png)
+### Personal Tasks
+<img src="screenshots/Screenshot_20250915-124755.png" width="30%">
 
 View tasks add tasks and take proofs of tasks
 
 ### Friend ToDo's
-![](screenshots/Screenshot_20250915-131747.png)
-Can click on friend cards to see what tasks they hav left to do and what tasks they have done. 
-![](screenshots/Screenshot_20250915-173302.png)
+<img src="screenshots/Screenshot_20250915-131747.png" width="30%">
+
+Can click on friend cards to see what tasks they hav left to do and what tasks they have done.
+
+<img src="screenshots/Screenshot_20250915-173302.png" width="30%">
 
 ### Feed
 Feed showing all friends shared tasks
-![](/SBR/screenshots/Screenshot_20250915-125124.png)
+
+<img src="screenshots/Screenshot_20250915-125124.png" width="30%">
 
 ## Profile
 
-![](/SBR/screenshots/Screenshot_20250915-131725.png)
+<img src="screenshots/Screenshot_20250915-131725.png" width="30%">
 
 ## Chats
 
-![](screenshots/Screenshot_20250915-124816.png)
-![](screenshots/Screenshot_20250915-132551.png)
+<img src="screenshots/Screenshot_20250915-124816.png" width="30%">
+<img src="screenshots/Screenshot_20250915-132551.png" width="30%">
 
 ## Camera
 
-![](/SBR/screenshots/Screenshot_20250915-173736.png)
-
-Camera preview
-![](screenshots/Screenshot_20250915-173802.png)
+<img src="screenshots/Screenshot_20250915-173736.png" width="30%">
+<img src="screenshots/Screenshot_20250915-173802.png" width="30%">
