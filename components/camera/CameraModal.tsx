@@ -1,3 +1,4 @@
+import chats from "@/app/(tabs)/(chats)/chats";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
@@ -43,7 +44,6 @@ interface Groups {
   name: string;
 }
 
-// 1. Add the optional taskId prop here
 interface CameraModalProps {
   setShowCameraModal: Dispatch<SetStateAction<boolean>>;
   showCameraModal: boolean;
@@ -53,7 +53,7 @@ interface CameraModalProps {
 const CameraModal = ({
   setShowCameraModal,
   showCameraModal,
-  taskId, // 2. Destructure the new prop
+  taskId,
 }: CameraModalProps) => {
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -78,7 +78,7 @@ const CameraModal = ({
     }
   }, [showCameraModal]);
 
-  // 3. Add this useEffect to auto-select the task
+
   useEffect(() => {
     // This hook runs when an image is taken.
     // If a taskId prop is provided and the tasks are loaded, it finds and selects the corresponding task.
@@ -206,6 +206,8 @@ const CameraModal = ({
         throw updateTaskError;
       }
 
+      // TODO Added proof to selected chats
+      // const {error: chatInsertError} = await supabase.from("chat_messages").insert()
       // Reset state and close modal on success
       handleRetake();
       setShowCameraModal(false);
@@ -524,7 +526,7 @@ const styles = StyleSheet.create({
   },
   headerControls: {
     position: "absolute",
-    top: 60,
+    top: 30,
     left: 20,
     right: 20,
     flexDirection: "row",
