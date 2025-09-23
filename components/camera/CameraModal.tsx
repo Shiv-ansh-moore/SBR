@@ -78,7 +78,6 @@ const CameraModal = ({
     }
   }, [showCameraModal]);
 
-
   useEffect(() => {
     // This hook runs when an image is taken.
     // If a taskId prop is provided and the tasks are loaded, it finds and selects the corresponding task.
@@ -184,13 +183,15 @@ const CameraModal = ({
       }
 
       // Insert submission record into the database
-      const { error: insertError } = await supabase
+      const { data: proofData, error: insertError } = await supabase
         .from("proof_submission")
         .insert({
           task_id: selectedTask.id,
           proof_media: filePath,
           proof_type: "image",
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         Alert.alert("Submission Failed", insertError.message);
@@ -206,8 +207,19 @@ const CameraModal = ({
         throw updateTaskError;
       }
 
-      // TODO Added proof to selected chats
-      // const {error: chatInsertError} = await supabase.from("chat_messages").insert()
+      // TODO Add proof to selected chats
+      if (groups && userId) {
+        for (const group of groups) {
+          const { error: chatInsertError } = await supabase
+            .from("chat_messages")
+            .insert({
+              user_id: userId,
+              group_id: group.id,
+              message_type: "proof",
+              proof_id: proofData.id,
+            });
+        }
+      }
       // Reset state and close modal on success
       handleRetake();
       setShowCameraModal(false);
@@ -218,7 +230,6 @@ const CameraModal = ({
     }
   };
 
-  // ... (rest of the component remains the same)
   // --- RENDER LOGIC ---
 
   if (!permission) {
