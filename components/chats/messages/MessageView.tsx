@@ -1,11 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
-// 1. Import useRef and add it to the React import
 import { useContext, useEffect, useRef, useState } from "react";
-// Make sure FlatList type is imported if you are using TypeScript with the ref
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import TextMessageSentByMember from "./TextMessageSentByMember";
 import TextMessageSentByYou from "./TextMessageSentByYou";
+import ProofMessage from "./ProofMessage";
 
 interface MessageViewProps {
   groupId: number;
@@ -23,6 +22,7 @@ interface Message {
   message_type: string;
   message_content: { text: string };
   user_id: string;
+  proof_id: number,
   users: UserProfile;
 }
 
@@ -40,7 +40,7 @@ const MessageView = ({ groupId }: MessageViewProps) => {
       const { data, error } = await supabase
         .from("chat_messages")
         .select(
-          "id, created_at, message_type, message_content, user_id,users(nickname, profile_pic, username)"
+          "id, created_at, message_type, message_content, user_id,users(nickname, profile_pic, username), proof_id"
         )
         .eq("group_id", groupId)
         .order("created_at", { ascending: true });
@@ -129,7 +129,7 @@ const MessageView = ({ groupId }: MessageViewProps) => {
               />
             )
           ) : (
-            <Text>different message</Text>
+            <ProofMessage proofId = {item.proof_id}/>
           );
         }}
       />
