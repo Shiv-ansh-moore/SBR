@@ -1,3 +1,5 @@
+// MessageView.tsx
+
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -22,7 +24,7 @@ interface Message {
   message_type: string;
   message_content: { text: string };
   user_id: string;
-  proof_id: number,
+  proof_id: number;
   users: UserProfile;
 }
 
@@ -31,10 +33,8 @@ const MessageView = ({ groupId }: MessageViewProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const context = useContext(AuthContext);
 
-  // 2. Create a ref for the FlatList
   const flatListRef = useRef<FlatList<Message>>(null);
 
-  // The initial fetch function remains the same
   const FetchMessages = async () => {
     if (userId) {
       const { data, error } = await supabase
@@ -100,19 +100,15 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     };
   }, [groupId]);
 
-  // 3. Add a new useEffect to scroll when the messages array changes
   useEffect(() => {
-    // We check if there are messages to avoid scrolling on an empty list
     if (messages.length > 0) {
-      // The optional chaining (?.) is a safeguard in case the ref isn't ready yet
       flatListRef.current?.scrollToEnd({ animated: true });
     }
-  }, [messages]); // This effect runs every time the 'messages' state updates
+  }, [messages]);
 
   return (
     <View style={{ flex: 1 }}>
       <FlatList
-        // 4. Attach the ref to the FlatList component
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id.toString()}
@@ -129,7 +125,12 @@ const MessageView = ({ groupId }: MessageViewProps) => {
               />
             )
           ) : (
-            <ProofMessage proofId = {item.proof_id}/>
+            // MODIFICATION: Pass currentUserId and senderId to ProofMessage
+            <ProofMessage
+              proofId={item.proof_id}
+              currentUserId={userId}
+              senderId={item.user_id}
+            />
           );
         }}
       />

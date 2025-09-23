@@ -1,3 +1,5 @@
+// ProofMessage.tsx
+
 import {
   StyleSheet,
   Text,
@@ -7,10 +9,13 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { AntDesign } from "@expo/vector-icons"; // 1. Import the icon
+import { AntDesign } from "@expo/vector-icons";
 
+// MODIFICATION 1: Update props interface
 interface ProofMessageProps {
   proofId: number;
+  currentUserId: string | undefined;
+  senderId: string;
 }
 
 interface ProofDetails {
@@ -23,12 +28,20 @@ interface ProofDetails {
   task_title: string;
 }
 
-const ProofMessage = ({ proofId }: ProofMessageProps) => {
+// MODIFICATION 2: Update component signature to accept new props
+const ProofMessage = ({
+  proofId,
+  currentUserId,
+  senderId,
+}: ProofMessageProps) => {
   const [proof, setProof] = useState<ProofDetails | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [proofMediaUrl, setProofMediaUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [imageAspectRatio, setImageAspectRatio] = useState(4 / 5); // Default aspect ratio
+  const [imageAspectRatio, setImageAspectRatio] = useState(4 / 5);
+
+  // MODIFICATION 3: Check if the message was sent by the current user
+  const isSentByYou = currentUserId === senderId;
 
   useEffect(() => {
     const getProofDetails = async () => {
@@ -52,19 +65,18 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
       const details = rpcData[0];
       setProof(details);
 
-      // Get public URL for the profile picture
-      if (details.profile_pic) {
+      // Only get profile pic if it's not sent by the current user
+      if (details.profile_pic && !isSentByYou) {
         const { data: picData } = supabase.storage
           .from("profilepic")
           .getPublicUrl(details.profile_pic);
         setProfilePicUrl(picData.publicUrl);
       }
 
-      // Get signed URL for the proof media and calculate its aspect ratio
       if (details.proof_media) {
         const { data, error } = await supabase.storage
           .from("proof-media")
-          .createSignedUrl(details.proof_media, 1800); // URL valid for 30 mins
+          .createSignedUrl(details.proof_media, 1800);
 
         if (error) {
           console.error("Error creating signed URL for proof:", error);
@@ -80,7 +92,6 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
             },
             (err) => {
               console.error("Failed to get image size:", err);
-              // Keep default aspect ratio if getSize fails
             }
           );
         }
@@ -89,13 +100,16 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
     };
 
     getProofDetails();
-  }, [proofId]);
+  }, [proofId, isSentByYou]); // Add isSentByYou to dependency array
 
+  // MODIFICATION 4: Update loading state to be side-aware
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.avatar} />
-        <View style={styles.loadingBubble}>
+      <View style={isSentByYou ? styles.containerSent : styles.container}>
+        {!isSentByYou && <View style={styles.avatar} />}
+        <View
+          style={isSentByYou ? styles.loadingBubbleSent : styles.loadingBubble}
+        >
           <ActivityIndicator size="small" color="#888" />
         </View>
       </View>
@@ -103,19 +117,22 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
   }
 
   if (!proof) {
-    // You can render an error message here if you'd like
     return null;
   }
 
+  // MODIFICATION 5: Update main return to render conditionally
   return (
-    <View style={styles.container}>
-      {profilePicUrl ? (
-        <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
-      ) : (
-        <View style={styles.avatar} /> // Placeholder if no pic
-      )}
-      <View style={styles.bubble}>
-        <Text style={styles.nickname}>{`~\u2009${proof.nickname}`}</Text>
+    <View style={isSentByYou ? styles.containerSent : styles.container}>
+      {!isSentByYou &&
+        (profilePicUrl ? (
+          <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatar} />
+        ))}
+      <View style={isSentByYou ? styles.bubbleSent : styles.bubble}>
+        {!isSentByYou && (
+          <Text style={styles.nickname}>{`~\u2009${proof.nickname}`}</Text>
+        )}
 
         {proofMediaUrl && (
           <View style={styles.imageContainer}>
@@ -125,8 +142,7 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
             />
           </View>
         )}
-        
-        {/* 2. Create a container for the icon and title */}
+
         <View style={styles.titleContainer}>
           <Text style={styles.taskTitle}>{proof.task_title}</Text>
           <AntDesign name="checkcircle" size={24} color="#3ECF8E" />
@@ -147,6 +163,7 @@ const ProofMessage = ({ proofId }: ProofMessageProps) => {
 
 export default ProofMessage;
 
+// MODIFICATION 6: Add and adjust styles for sent messages
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -154,14 +171,22 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 10,
     marginLeft: 10,
-    alignItems: "flex-start", // Vertically aligns avatar to the top
+    alignItems: "flex-start",
+  },
+  containerSent: {
+    flexDirection: "row",
+    maxWidth: "70%",
+    alignSelf: "flex-end",
+    marginTop: 10,
+    marginRight: 10,
+    alignItems: "flex-start",
   },
   avatar: {
     width: 35,
     height: 35,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: "#333", // Placeholder color
+    backgroundColor: "#333",
   },
   bubble: {
     flex: 1,
@@ -172,13 +197,32 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     padding: 10,
   },
+  bubbleSent: {
+    flex: 1,
+    borderWidth: 0.25,
+    borderColor: "#3ECF8E",
+    backgroundColor: "#242424",
+    borderRadius: 20,
+    borderTopRightRadius: 0,
+    padding: 10,
+  },
   loadingBubble: {
     flex: 1,
     backgroundColor: "#242424",
     borderRadius: 20,
     borderTopLeftRadius: 0,
     padding: 12,
-    height: 80, // Fixed height for loading state
+    height: 80,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingBubbleSent: {
+    flex: 1,
+    backgroundColor: "#242424",
+    borderRadius: 20,
+    borderTopRightRadius: 0,
+    padding: 12,
+    height: 80,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -188,18 +232,17 @@ const styles = StyleSheet.create({
     color: "#CF6A3E",
     marginBottom: 4,
   },
-  // 3. Add a style for the new container
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
   },
   taskTitle: {
-    flex: 1, // Allows text to wrap if it's long
+    flex: 1,
     fontFamily: "Regular",
     color: "#3ECF8E",
     fontSize: 15,
-    marginLeft: 8, // Add space between icon and text
+    marginRight: 8, // Use marginRight for sent messages
   },
   imageContainer: {
     borderRadius: 15,
@@ -208,7 +251,6 @@ const styles = StyleSheet.create({
   },
   proofImage: {
     width: "100%",
-    // Aspect ratio is set dynamically in the component style
   },
   note: {
     fontFamily: "Regular",
@@ -221,6 +263,6 @@ const styles = StyleSheet.create({
     fontFamily: "ExtraLight",
     fontSize: 10,
     color: "#888",
-    alignSelf: "flex-end", // Position timestamp to the bottom right
+    alignSelf: "flex-end",
   },
 });
