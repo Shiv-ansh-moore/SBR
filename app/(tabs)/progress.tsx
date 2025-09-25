@@ -11,10 +11,7 @@ import {
 } from "react-native";
 
 const { width } = Dimensions.get("window");
-const pages = [
-  <FriendProofOverViewList />,
-  <FriendsProofList />,
-];
+const pages = [<FriendsProofList />, <FriendProofOverViewList />];
 
 const progress = () => {
   // ✨ 3. Create an Animated.Value to track the scroll position
@@ -92,7 +89,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF", // ✨ 5. Use a single color
     marginHorizontal: 5,
   },
-
 });
 
 export default progress;
