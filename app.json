@@ -16,7 +16,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ],
+      "package": "com.shiv_g.SBR"
     },
     "web": {
       "bundler": "metro",
@@ -30,6 +36,7 @@
           "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ],
+      "expo-notifications",
       "expo-router",
       [
         "expo-splash-screen",
@@ -52,6 +59,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "712ff78e-9461-4722-bef3-0d17d13a8c58"
+      }
     }
   }
 }
