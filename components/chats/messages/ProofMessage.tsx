@@ -1,5 +1,5 @@
 // ProofMessage.tsx
-
+// removed resize was makeing the images look wierd when initally loading causing the auto scroller not to work
 import {
   StyleSheet,
   Text,
@@ -83,17 +83,17 @@ const ProofMessage = ({
         } else if (data?.signedUrl) {
           const url = data.signedUrl;
           setProofMediaUrl(url);
-          Image.getSize(
-            url,
-            (width, height) => {
-              if (height > 0) {
-                setImageAspectRatio(width / height);
-              }
-            },
-            (err) => {
-              console.error("Failed to get image size:", err);
-            }
-          );
+          // Image.getSize(
+          //   url,
+          //   (width, height) => {
+          //     if (height > 0) {
+          //       setImageAspectRatio(width / height);
+          //     }
+          //   },
+          //   (err) => {
+          //     console.error("Failed to get image size:", err);
+          //   }
+          // );
         }
       }
       setIsLoading(false);
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#242424",
     borderRadius: 20,
     borderTopLeftRadius: 0,
-    padding: 12,
-    height: 80,
+    // padding: 12,
+    height: 400,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderTopRightRadius: 0,
     padding: 12,
-    height: 80,
+    height: 400,
     justifyContent: "center",
     alignItems: "center",
   },
