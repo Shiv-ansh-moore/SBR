@@ -123,7 +123,6 @@ const MessageView = ({ groupId }: MessageViewProps) => {
           filter: `group_id=eq.${groupId}`,
         },
         async (payload) => {
-          console.log(payload)
           const newMessage = payload.new as Message;
           const { data: userData, error } = await supabase
             .from("users")
