@@ -13,6 +13,7 @@ import {
 import TextMessageSentByMember from "./TextMessageSentByMember";
 import TextMessageSentByYou from "./TextMessageSentByYou";
 import ProofMessage from "./ProofMessage";
+import FriendDetailModal from "@/components/proof/FriendDetailModal";
 
 interface MessageViewProps {
   groupId: number;
@@ -22,6 +23,11 @@ interface UserProfile {
   nickname: string;
   profile_pic: string | null;
   username: string;
+}
+
+interface ProofOverview {
+  profile_pic: string;
+  nickname: string;
 }
 
 interface Message {
@@ -46,6 +52,14 @@ const MessageView = ({ groupId }: MessageViewProps) => {
   const [allMessagesLoaded, setAllMessagesLoaded] = useState(false); // To stop fetching
 
   const flatListRef = useRef<FlatList<Message>>(null);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [selectedFriendOverview, setSelectedFriendOverview] =
+    useState<ProofOverview | null>(null);
+  const [selectedFriendPicUrl, setSelectedFriendPicUrl] = useState<string | null>(
+    null
+  );
 
   const FetchMessages = async () => {
     if (userId) {
@@ -105,6 +119,37 @@ const MessageView = ({ groupId }: MessageViewProps) => {
       setPage((prevPage) => prevPage + 1);
     }
     setLoadingOlder(false);
+  };
+
+  const handleProfilePicPress = (
+    userId: string,
+    nickname: string,
+    profilePicPath: string | null
+  ) => {
+    setSelectedFriendId(userId);
+    setSelectedFriendOverview({
+      nickname: nickname,
+      profile_pic: profilePicPath || "", // Pass the path
+    });
+
+    // Generate the public URL for the modal
+    if (profilePicPath) {
+      const { data: urlData } = supabase.storage
+        .from("profilepic")
+        .getPublicUrl(profilePicPath);
+      setSelectedFriendPicUrl(urlData.publicUrl);
+    } else {
+      setSelectedFriendPicUrl(null); // Or a default placeholder URL
+    }
+
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedFriendId(null);
+    setSelectedFriendOverview(null);
+    setSelectedFriendPicUrl(null);
   };
 
   useEffect(() => {
@@ -181,6 +226,8 @@ const MessageView = ({ groupId }: MessageViewProps) => {
                 created_at={item.created_at}
                 nickname={item.users.nickname}
                 profile_pic={item.users.profile_pic}
+                userId={item.user_id} // <-- Pass user ID
+                onProfilePicPress={handleProfilePicPress} // <-- Pass handler
               />
             )
           ) : // MODIFICATION: Only render ProofMessage if proof_id is not null
@@ -193,6 +240,15 @@ const MessageView = ({ groupId }: MessageViewProps) => {
           ) : null; // Don't render anything if it's not text and has no proof_id
         }}
       />
+      {selectedFriendId && (
+        <FriendDetailModal
+          isVisible={modalVisible}
+          onClose={handleCloseModal}
+          friendId={selectedFriendId}
+          initialOverview={selectedFriendOverview}
+          profilePicLink={selectedFriendPicUrl}
+        />
+      )}
     </View>
   );
 };

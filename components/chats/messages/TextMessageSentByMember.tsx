@@ -1,19 +1,32 @@
+// TextMessageSentByMember.tsx
+
 import { supabase } from "@/lib/supabaseClient";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+// --- ADD ---
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 
-interface TextMessageSentByMember {
+// --- MODIFY ---: Add new props to the interface
+interface TextMessageSentByMemberProps {
   message: string;
   nickname: string;
   profile_pic: string | null;
   created_at: string;
+  userId: string; // <-- Add this
+  onProfilePicPress: ( // <-- Add this
+    userId: string,
+    nickname: string,
+    profilePicPath: string | null
+  ) => void;
 }
 const TextMessageSentByMember = ({
   message,
   profile_pic,
   nickname,
-}: TextMessageSentByMember) => {
+  // --- ADD ---: Destructure new props
+  userId,
+  onProfilePicPress,
+}: TextMessageSentByMemberProps) => { // --- MODIFY ---
   const [profilePicUrl, setProfilePicUrl] = useState<string>();
 
   const getProfilePic = () => {
@@ -27,11 +40,16 @@ const TextMessageSentByMember = ({
 
   useEffect(() => {
     getProfilePic();
-  }, []);
+  }, [profile_pic]); // --- MODIFY ---: Add dependency
 
   return (
     <View style={styles.container}>
-      <Image style={styles.profilePic} source={profilePicUrl} />
+      {/* --- MODIFY ---: Wrap Image in TouchableOpacity */}
+      <TouchableOpacity
+        onPress={() => onProfilePicPress(userId, nickname, profile_pic)}
+      >
+        <Image style={styles.profilePic} source={profilePicUrl} />
+      </TouchableOpacity>
       <View style={styles.textBox}>
         <Text style={styles.nickName}>{`~\u2009${nickname}`}</Text>
         <Text style={styles.messageText}>{message}</Text>
@@ -41,6 +59,7 @@ const TextMessageSentByMember = ({
 };
 export default TextMessageSentByMember;
 const styles = StyleSheet.create({
+// ... (no changes to styles)
   container: {
     flexDirection: "row",
     maxWidth: "70%",
