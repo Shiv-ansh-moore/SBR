@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   View,
   FlatList, // <<< Import FlatList for a scrollable list
+  KeyboardAvoidingView, // <<< Import for better keyboard handling
 } from "react-native";
 // Assuming you have DateTimePicker, otherwise, the date logic won't work
 // import DateTimePicker from "@react-native-community/datetimepicker";
@@ -53,8 +54,12 @@ const AddTaskModal = ({
     goalId || null
   );
 
-  // <<< New state for the goal picker modal
   const [showGoalPicker, setShowGoalPicker] = useState<boolean>(false);
+  
+  // <<< START: New state for the description modal
+  const [showDescriptionModal, setShowDescriptionModal] =
+    useState<boolean>(false);
+  // <<< END: New state
 
   useEffect(() => {
     const fetchUserGoals = async () => {
@@ -73,7 +78,6 @@ const AddTaskModal = ({
     };
 
     fetchUserGoals();
-    // <<< Fetch goals when userId is available, not every time the modal opens
   }, [userId]);
 
   // Reset local state when modal is opened or closed
@@ -83,20 +87,16 @@ const AddTaskModal = ({
       setSelectedGoalId(goalId || null);
       setTaskTitle(null);
       setDueDate(null);
-      setTaskDescription(null);
+      setTaskDescription(null); // <<< Also resets description
     }
   }, [showAddTask, goalId]);
 
-  // This function handles the result from the DateTimePicker
   const handleDateChange = (event: any, selectedDate?: Date) => {
     // ... (Your existing handleDateChange logic) ...
-    // Note: This logic appears to be flawed (swapped date/time picking).
-    // I've left it as-is, but you may need to revise it.
-    // The DateTimePicker component itself is also missing from this file.
   };
 
   const showDatePicker = () => {
-    setPickerMode("time"); // <<< This likely should be "date" first
+    setPickerMode("time");
     setShowPicker(true);
   };
 
@@ -107,13 +107,12 @@ const AddTaskModal = ({
           user_id: userId,
           goal_id: selectedGoalId,
           title: taskTitle,
-          description: taskDescription,
+          description: taskDescription, // <<< This was already here and correct
           due_date: dueDate?.toISOString(),
           completed: false,
           is_public: isPublic,
         });
         setShowAddTask(false);
-        // State is now reset via useEffect [showAddTask]
         if (error) {
           console.log("Error adding task:", error.message);
           alert("Failed to add task.");
@@ -124,7 +123,6 @@ const AddTaskModal = ({
     }
   };
 
-  // <<< Find the selected goal's title for display
   const selectedGoal = userGoals.find((g) => g.id === selectedGoalId);
 
   return (
@@ -152,31 +150,29 @@ const AddTaskModal = ({
             <View style={styles.titleContainer}>
               <TextInput
                 placeholder="Title"
-                placeholderTextColor="rgba(255,255,255,0.7)" // <<< Made placeholder lighter
+                placeholderTextColor="rgba(255,255,255,0.7)"
                 style={styles.titleInput}
                 autoFocus={true}
-                value={taskTitle || ""} // <<< Connect state
-                onChangeText={setTaskTitle} // <<< Connect state
+                value={taskTitle || ""}
+                onChangeText={setTaskTitle}
               />
               <View style={styles.titleLine} />
             </View>
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={[styles.inputButtons, styles.buttons]}
-                onPress={() => setShowGoalPicker(true)} // <<< Show goal picker
+                onPress={() => setShowGoalPicker(true)}
               >
-                <Text style={styles.buttonText}>
-                  {/* <<< Display selected goal title */}
+                <Text style={styles.buttonText} numberOfLines={1}>
                   {selectedGoal ? selectedGoal.title : "No Goal"}
                 </Text>
                 <Octicons name="triangle-down" size={24} color="white" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.inputButtons, styles.buttons, styles.dateButton]}
-                onPress={showDatePicker} // <<< Connect date picker
+                onPress={showDatePicker}
               >
                 <View style={styles.dateContainer}>
-                  {/* <<< Display selected date/time */}
                   <Text style={styles.timeText}>
                     {dueDate
                       ? dueDate.toLocaleTimeString([], {
@@ -193,13 +189,27 @@ const AddTaskModal = ({
               </TouchableOpacity>
             </View>
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={[styles.inputButtons, styles.buttons]}>
-                <Text style={styles.buttonText}>Description</Text>
-                <Ionicons name="add-circle" size={24} color="white" />
+              {/* <<< START: Updated Description Button */}
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowDescriptionModal(true)} // <<< Show description modal
+              >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {taskDescription
+                    ? "Edit Description"
+                    : "Add Description"}
+                </Text>
+                <Ionicons
+                  name={taskDescription ? "pencil" : "add-circle"} // <<< Dynamic icon
+                  size={24}
+                  color="white"
+                />
               </TouchableOpacity>
+              {/* <<< END: Updated Description Button */}
+              
               <TouchableOpacity
                 style={[styles.addTaskButton, styles.buttons]}
-                onPress={addTaskSubmitted} // <<< Connect submit function
+                onPress={addTaskSubmitted}
               >
                 <Text style={styles.buttonText}>Add Task</Text>
                 <AntDesign name="checkcircle" size={21} color="white" />
@@ -238,7 +248,6 @@ const AddTaskModal = ({
                   <Text style={styles.pickerItemText}>{item.title}</Text>
                 </TouchableOpacity>
               )}
-              // <<< Add a "No Goal" option at the top
               ListHeaderComponent={
                 <TouchableOpacity
                   style={styles.pickerItem}
@@ -256,18 +265,60 @@ const AddTaskModal = ({
       </Modal>
       {/* <<< END: GOAL PICKER MODAL */}
 
+      {/* <<< START: DESCRIPTION MODAL */}
+      <Modal
+        transparent={true}
+        visible={showDescriptionModal}
+        animationType="fade"
+        onRequestClose={() => setShowDescriptionModal(false)}
+      >
+        {/* Use KeyboardAvoidingView for better behavior when keyboard shows */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.centeredView}
+        >
+          <Pressable
+            style={styles.centeredView} // Fullscreen pressable to close
+            onPress={() => setShowDescriptionModal(false)}
+          >
+            <Pressable
+              style={styles.descriptionContainer} // Modal content
+              onPress={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+            >
+              <Text style={styles.descriptionTitle}>Task Description</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Add more details..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline={true}
+                value={taskDescription || ""}
+                onChangeText={setTaskDescription} // <<< Update state directly
+                autoFocus={true} // <<< Open keyboard immediately
+              />
+              <TouchableOpacity
+                style={styles.descriptionDoneButton}
+                onPress={() => setShowDescriptionModal(false)} // <<< Just close the modal
+              >
+                <Text style={styles.descriptionDoneText}>Done</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+      {/* <<< END: DESCRIPTION MODAL */}
+
       {/* <<< You would render your DateTimePicker here */}
       {/*
-      {showPicker && (
-        <DateTimePicker
-          value={dueDate || new Date()}
-          mode={pickerMode}
-          is24Hour={true}
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
-      */}
+       {showPicker && (
+         <DateTimePicker
+           value={dueDate || new Date()}
+           mode={pickerMode}
+           is24Hour={true}
+           display="default"
+           onChange={handleDateChange}
+         />
+       )}
+       */}
     </View>
   );
 };
@@ -279,7 +330,6 @@ const styles = StyleSheet.create({
     right: 17,
     zIndex: 1,
   },
-
   centeredView: {
     flex: 1,
     justifyContent: "center",
@@ -341,7 +391,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
 
-  // <<< NEW STYLES FOR GOAL PICKER
+  // <<< STYLES FOR GOAL PICKER
   pickerContainer: {
     width: 300,
     maxHeight: 400,
@@ -361,4 +411,45 @@ const styles = StyleSheet.create({
     fontFamily: "Regular",
     fontSize: 16,
   },
+  
+  // <<< START: NEW STYLES FOR DESCRIPTION MODAL
+  descriptionContainer: {
+    width: 350,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+  },
+  descriptionTitle: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  descriptionInput: {
+    minHeight: 150, // Give space for multiple lines
+    backgroundColor: "#171717",
+    borderRadius: 8,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 10,
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+    textAlignVertical: "top", // For Android multiline
+    marginBottom: 15,
+  },
+  descriptionDoneButton: {
+    backgroundColor: "#3ECF8E", // Match "Add Task" button
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  descriptionDoneText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
+  // <<< END: NEW STYLES
 });
