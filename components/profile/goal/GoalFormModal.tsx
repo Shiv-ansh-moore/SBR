@@ -1,5 +1,7 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { supabase } from "@/lib/supabaseClient";
+import { AuthContext } from "@/providers/AuthProvider";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   Dispatch,
@@ -9,18 +11,16 @@ import {
   useState,
 } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
-import { supabase } from "@/lib/supabaseClient";
-import { AuthContext } from "@/providers/AuthProvider";
 
 interface GoalFormModalProps {
   setShowAddGoal: Dispatch<SetStateAction<boolean>>;
@@ -128,9 +128,7 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
                 onPress={() => setShowDescriptionModal(true)}
               >
                 <Text style={styles.buttonText} numberOfLines={1}>
-                  {goalDescription
-                    ? "Edit Description"
-                    : "Add Description"}
+                  {goalDescription ? "Edit Description" : "Add Description"}
                 </Text>
                 <Ionicons
                   name={goalDescription ? "pencil" : "add-circle"}
@@ -266,7 +264,7 @@ const styles = StyleSheet.create({
   addGoalButtonWide: {
     // <<< NEW: Style for wide button
     width: 355, // Combined width of two original buttons
-    height:50
+    height: 50,
   },
   buttonText: {
     fontFamily: "Regular",
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     marginTop: 15,
-    marginBottom:5
+    marginBottom: 5,
   },
 
   // --- STYLES FOR DESCRIPTION MODAL ---
