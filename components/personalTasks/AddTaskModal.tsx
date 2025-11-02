@@ -3,7 +3,6 @@ import { AuthContext } from "@/providers/AuthProvider";
 import Octicons from "@expo/vector-icons/Octicons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AntDesign from "@expo/vector-icons/AntDesign";
-
 import {
   Dispatch,
   SetStateAction,
@@ -20,11 +19,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  FlatList, // <<< Import FlatList for a scrollable list
-  KeyboardAvoidingView, // <<< Import for better keyboard handling
+  FlatList,
+  KeyboardAvoidingView,
 } from "react-native";
-// Assuming you have DateTimePicker, otherwise, the date logic won't work
-// import DateTimePicker from "@react-native-community/datetimepicker";
+// <<< MODIFIED: Import DateTimePicker
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 interface TaskFormModalProps {
   setShowAddTask: Dispatch<SetStateAction<boolean>>;
@@ -55,7 +54,7 @@ const AddTaskModal = ({
   );
 
   const [showGoalPicker, setShowGoalPicker] = useState<boolean>(false);
-  
+
   // <<< START: New state for the description modal
   const [showDescriptionModal, setShowDescriptionModal] =
     useState<boolean>(false);
@@ -91,14 +90,38 @@ const AddTaskModal = ({
     }
   }, [showAddTask, goalId]);
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    // ... (Your existing handleDateChange logic) ...
-  };
+ const handleDateChange = (event: any, selectedDate?: Date) => {
+        // Get the selected date, or fallback to the existing dueDate
+        const currentDate = selectedDate || dueDate;
 
-  const showDatePicker = () => {
-    setPickerMode("time");
-    setShowPicker(true);
-  };
+        // Hide picker immediately after a choice or dismissal (especially for Android)
+        setShowPicker(false); 
+
+        if (event.type === "set" && currentDate) {
+            // User confirmed a selection
+            if (pickerMode === "time") {
+                // 1. They just set the TIME. Now, set the state
+                // and show the DATE picker next.
+                setDueDate(currentDate);
+                setPickerMode("date");
+                setShowPicker(true); // Re-open for DATE
+            } else {
+                // 2. They just set the DATE. This is the final step.
+                setDueDate(currentDate);
+                // Picker is already hidden, we are done.
+            }
+        }
+        // If event.type is 'dismissed' (cancel), picker is already hidden, so do nothing.
+    };
+
+    // ---
+    // ⬇️ MODIFIED: showDatePicker now starts with "time"
+    // ---
+    const showDatePicker = () => {
+        // Start the process by showing the TIME picker first
+        setPickerMode("time"); 
+        setShowPicker(true);
+    };
 
   const addTaskSubmitted = async () => {
     if (userId) {
@@ -206,7 +229,7 @@ const AddTaskModal = ({
                 />
               </TouchableOpacity>
               {/* <<< END: Updated Description Button */}
-              
+
               <TouchableOpacity
                 style={[styles.addTaskButton, styles.buttons]}
                 onPress={addTaskSubmitted}
@@ -307,18 +330,16 @@ const AddTaskModal = ({
       </Modal>
       {/* <<< END: DESCRIPTION MODAL */}
 
-      {/* <<< You would render your DateTimePicker here */}
-      {/*
-       {showPicker && (
-         <DateTimePicker
-           value={dueDate || new Date()}
-           mode={pickerMode}
-           is24Hour={true}
-           display="default"
-           onChange={handleDateChange}
-         />
-       )}
-       */}
+      {/* <<< MODIFIED: Uncommented and activated DateTimePicker */}
+      {showPicker && (
+        <DateTimePicker
+          value={dueDate || new Date()}
+          mode={pickerMode}
+          is24Hour={true}
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
     </View>
   );
 };
@@ -411,7 +432,7 @@ const styles = StyleSheet.create({
     fontFamily: "Regular",
     fontSize: 16,
   },
-  
+
   // <<< START: NEW STYLES FOR DESCRIPTION MODAL
   descriptionContainer: {
     width: 350,
@@ -451,5 +472,4 @@ const styles = StyleSheet.create({
     fontFamily: "Regular",
     fontSize: 16,
   },
-  // <<< END: NEW STYLES
 });
