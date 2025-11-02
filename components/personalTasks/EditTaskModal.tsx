@@ -2,10 +2,9 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Picker } from "@react-native-picker/picker";
-import Checkbox from "expo-checkbox";
+import Octicons from "@expo/vector-icons/Octicons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import {
   Dispatch,
   SetStateAction,
@@ -14,7 +13,7 @@ import {
   useState,
 } from "react";
 import {
-  Alert,
+  Alert, // Keep Alert for the delete confirmation
   Modal,
   Platform,
   Pressable,
@@ -23,7 +22,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  FlatList,
+  KeyboardAvoidingView,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 // Interface for the full task object
 interface Task {
@@ -65,6 +67,12 @@ const EditTaskModal = ({
   const userId = context.session?.user.id;
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
 
+  // <<< START: State for new Modals
+  const [showGoalPicker, setShowGoalPicker] = useState<boolean>(false);
+  const [showDescriptionModal, setShowDescriptionModal] =
+    useState<boolean>(false);
+  // <<< END: State for new Modals
+
   // Effect to populate the form when a task is passed in
   useEffect(() => {
     if (task) {
@@ -92,30 +100,22 @@ const EditTaskModal = ({
   }, [showEditModal, userId]);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") setShowPicker(false);
-    if (event.type === "set" && selectedDate) {
-      const currentDate = selectedDate;
-      if (pickerMode === "date") {
-        if (Platform.OS === "android") {
-          setDueDate(currentDate);
-          setPickerMode("time");
-          setShowPicker(true);
-        } else {
-          setDueDate(currentDate);
-        }
+    const currentDate = selectedDate || dueDate;
+    setShowPicker(false);
+
+    if (event.type === "set" && currentDate) {
+      if (pickerMode === "time") {
+        setDueDate(currentDate);
+        setPickerMode("date");
+        setShowPicker(true);
       } else {
-        const finalDate = dueDate ? new Date(dueDate) : new Date();
-        finalDate.setHours(currentDate.getHours());
-        finalDate.setMinutes(currentDate.getMinutes());
-        setDueDate(finalDate);
+        setDueDate(currentDate);
       }
-    } else {
-      setShowPicker(false);
     }
   };
 
   const showDatePicker = () => {
-    setPickerMode("date");
+    setPickerMode("time");
     setShowPicker(true);
   };
 
@@ -157,9 +157,7 @@ const EditTaskModal = ({
           if (error) {
             alert("Failed to delete task.");
           } else {
-            // Call the callback function with the deleted task's ID
             onTaskDeleted(task.id);
-            // Then close the modal
             setShowEditModal(false);
           }
         },
@@ -167,241 +165,366 @@ const EditTaskModal = ({
     ]);
   };
 
+  // Find the goal title for display
+  const selectedGoal = userGoals.find((g) => g.id === selectedGoalId);
+
   return (
-    <Modal transparent={true} visible={showEditModal} animationType="fade">
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          {showPicker && (
-            <DateTimePicker
-              value={dueDate || new Date()}
-              mode={Platform.OS === "ios" ? "datetime" : pickerMode}
-              is24Hour={true}
-              onChange={handleDateChange}
-            />
-          )}
-          <Text style={styles.heading}>Edit Task:</Text>
-          <Text style={styles.title}>Title:</Text>
-          <TextInput
-            style={styles.titleInput}
-            autoCapitalize="words"
-            value={taskTitle}
-            onChangeText={setTaskTitle}
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          />
-          <Text style={styles.title}>Description:</Text>
-          <TextInput
-            style={styles.descriptionInput}
-            autoCapitalize="sentences"
-            multiline={true}
-            value={taskDescription || ""}
-            onChangeText={setTaskDescription}
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          />
-          <View style={styles.pickerRow}>
-            <View style={{ flex: 1, marginRight: 5 }}>
-              <Text style={styles.title}>Goal:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedGoalId}
-                  onValueChange={(itemValue) => setSelectedGoalId(itemValue)}
-                  style={styles.picker}
-                  dropdownIconColor={"#FFF"}
-                >
-                  <Picker.Item label="No Goal" value={null} />
-                  {userGoals.map((goal) => (
-                    <Picker.Item
-                      key={goal.id}
-                      label={goal.title}
-                      value={goal.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-          </View>
+    <View>
+      <Modal
+        transparent={true}
+        visible={showEditModal} // <<< Use showEditModal
+        animationType="fade"
+      >
+        <Pressable
+          style={styles.centeredView}
+          onPress={() => setShowEditModal(false)} // <<< Use setShowEditModal
+        >
           <Pressable
-            style={styles.checkboxContainer}
-            onPress={() => setIsPublic(!isPublic)}
+            style={styles.mainView}
+            onPress={(e) => e.stopPropagation()}
           >
-            <Text style={styles.checkboxLabel}>Make Task Public:</Text>
-            <Checkbox
-              value={isPublic}
-              onValueChange={setIsPublic}
-              color={isPublic ? "#3ECF8E" : "rgba(77, 61, 61, 0.50)"}
-            />
-          </Pressable>
-          {dueDate ? (
-            <View style={styles.dueDateContainer}>
-              <Text style={styles.dueDateText}>
-                Due:{" "}
-                {dueDate.toLocaleString([], {
-                  /* Formatting options */
-                })}
-              </Text>
-              <TouchableOpacity onPress={() => setDueDate(null)}>
-                <MaterialCommunityIcons style={styles.deleteIcon}name="delete" size={20} color="red" />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowEditModal(false)} // <<< Use setShowEditModal
+            >
+              <AntDesign
+                name="closecircleo"
+                size={22}
+                color="rgba(255,255,255,0.5)"
+              />
+            </TouchableOpacity>
+
+            <View style={styles.titleContainer}>
+              <TextInput
+                placeholder="Title"
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                style={styles.titleInput}
+                autoFocus={true}
+                value={taskTitle || ""}
+                onChangeText={setTaskTitle}
+              />
+              <View style={styles.titleLine} />
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowGoalPicker(true)}
+              >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {selectedGoal ? selectedGoal.title : "No Goal"}
+                </Text>
+                <Octicons name="triangle-down" size={24} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons, styles.dateButton]}
+                onPress={showDatePicker}
+              >
+                <View style={styles.dateContainer}>
+                  <Text style={styles.timeText}>
+                    {dueDate
+                      ? dueDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "--:--"}
+                  </Text>
+                  <Text style={styles.dateText}>
+                    {dueDate ? dueDate.toLocaleDateString() : "--/--/--"}
+                  </Text>
+                </View>
+                <Ionicons name="add-circle" size={24} color="white" />
               </TouchableOpacity>
             </View>
-          ) : (
-            <Text style={styles.dueDateText}>Due Date: --------</Text>
-          )}
-          <View style={styles.buttonContainer}>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowDescriptionModal(true)}
+              >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {taskDescription
+                    ? "Edit Description"
+                    : "Add Description"}
+                </Text>
+                <Ionicons
+                  name={taskDescription ? "pencil" : "add-circle"}
+                  size={24}
+                  color="white"
+                />
+              </TouchableOpacity>
+
+              {/* <<< START: MODIFIED "DELETE" BUTTON */}
+              <TouchableOpacity
+                style={[styles.deleteTaskButton, styles.buttons]} // <<< Use delete style
+                onPress={handleDeleteTask} // <<< Call delete function
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+                <AntDesign name="delete" size={21} color="white" />
+              </TouchableOpacity>
+              {/* <<< END: MODIFIED "DELETE" BUTTON */}
+            </View>
+
+            {/* <<< START: NEW "UPDATE" BUTTON */}
             <TouchableOpacity
-              onPress={showDatePicker}
-              style={[styles.buttons, styles.dueDateButton]}
-            >
-              <Text style={styles.buttonText}>Due Date</Text>
-            </TouchableOpacity>
-            {/* THIS IS THE NEW "CLOSE" BUTTON */}
-            <TouchableOpacity
-              style={[styles.buttons, styles.deleteButton]}
-              onPress={() => setShowEditModal(false)}
-            >
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.buttons, styles.updateButton]}
+              style={styles.updateButton}
               onPress={handleUpdateTask}
             >
-              <Text style={styles.buttonText}>Update</Text>
+              <Text style={styles.updateButtonText}>Update Task</Text>
             </TouchableOpacity>
-          </View>
-          {/* THIS IS THE NEW "DELETE" BUTTON */}
-          <TouchableOpacity style={styles.closeIcon} onPress={handleDeleteTask}>
-            <MaterialCommunityIcons name="delete" size={30} color="red" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+            {/* <<< END: NEW "UPDATE" BUTTON */}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* <<< START: GOAL PICKER MODAL */}
+      <Modal
+        transparent={true}
+        visible={showGoalPicker}
+        animationType="fade"
+        onRequestClose={() => setShowGoalPicker(false)}
+      >
+        <Pressable
+          style={styles.centeredView}
+          onPress={() => setShowGoalPicker(false)}
+        >
+          <Pressable
+            style={styles.pickerContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <FlatList
+              data={userGoals}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedGoalId(item.id);
+                    setShowGoalPicker(false);
+                  }}
+                >
+                  <Text style={styles.pickerItemText}>{item.title}</Text>
+                </TouchableOpacity>
+              )}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedGoalId(null);
+                    setShowGoalPicker(false);
+                  }}
+                >
+                  <Text style={styles.pickerItemText}>No Goal</Text>
+                </TouchableOpacity>
+              }
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+      {/* <<< END: GOAL PICKER MODAL */}
+
+      {/* <<< START: DESCRIPTION MODAL */}
+      <Modal
+        transparent={true}
+        visible={showDescriptionModal}
+        animationType="fade"
+        onRequestClose={() => setShowDescriptionModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.centeredView}
+        >
+          <Pressable
+            style={styles.centeredView}
+            onPress={() => setShowDescriptionModal(false)}
+          >
+            <Pressable
+              style={styles.descriptionContainer}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={styles.descriptionTitle}>Task Description</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Add more details..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline={true}
+                value={taskDescription || ""}
+                onChangeText={setTaskDescription}
+                autoFocus={true}
+              />
+              <TouchableOpacity
+                style={styles.descriptionDoneButton}
+                onPress={() => setShowDescriptionModal(false)}
+              >
+                <Text style={styles.descriptionDoneText}>Done</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+      {/* <<< END: DESCRIPTION MODAL */}
+
+      {/* DateTimePicker */}
+      {showPicker && (
+        <DateTimePicker
+          value={dueDate || new Date()}
+          mode={pickerMode}
+          is24Hour={true}
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+    </View>
   );
 };
 export default EditTaskModal;
+
+// --- STYLES (Copied from AddTaskModal and modified) ---
 const styles = StyleSheet.create({
+  closeButton: {
+    position: "absolute",
+    top: 7,
+    right: 17,
+    zIndex: 1,
+  },
   centeredView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  modalView: {
-    height: 390,
-    width: "95%",
+  mainView: {
+    height: 285, // <<< MODIFIED: Increased height for new button
+    width: 380,
     backgroundColor: "#171717",
     borderRadius: 20,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
-    padding: 5,
-  },
-  heading: {
-    fontSize: 24,
-    fontFamily: "SemiBold",
-    color: "white",
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: "Regular",
-    color: "white",
-    marginLeft: 5,
-    marginTop: 2,
   },
   titleInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 10,
-    color: "white",
-    fontFamily: "Light",
-    textAlignVertical: "top",
-    marginLeft: 10,
-    marginRight: 10,
-    paddingHorizontal: 10,
-    height: 40,
+    fontSize: 20,
+    fontFamily: "Regular",
+    color: "#FFFFFF",
+    paddingVertical: 0,
+    height: 30,
+    marginLeft: 17,
   },
-  pickerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  pickerContainer: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-  },
-  picker: {
-    color: "white",
-    width: "100%",
-  },
-  descriptionInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 10,
-    color: "white",
-    fontFamily: "Light",
-    height: 70,
-    textAlignVertical: "top",
-    marginLeft: 10,
-    marginRight: 10,
-    padding: 10,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-    marginLeft: 10,
-    marginRight: 15,
-  },
-  checkboxLabel: {
-    fontFamily: "ExtraLight",
-    color: "white",
-    marginRight: 5,
-  },
-  buttonContainer: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    right: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
+  titleLine: {
+    width: 340,
+    height: 1,
+    backgroundColor: "#D9D9D9",
+    alignSelf: "center",
   },
   buttons: {
-    height: 30,
-    width: 110,
-    borderRadius: 15,
-    justifyContent: "center",
+    width: 170,
+    height: 50,
+    borderRadius: 20,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 10,
   },
+  inputButtons: { backgroundColor: "#242424" },
+  // <<< MODIFIED: Renamed addTaskButton to deleteTaskButton and changed color
+  deleteTaskButton: { backgroundColor: "#E53E3E" }, // Red color for delete
   buttonText: {
+    fontFamily: "Regular",
     color: "white",
     fontSize: 16,
+    marginLeft: 0,
+    maxWidth: "80%",
+  },
+  dateButton: {},
+  dateContainer: { justifyContent: "center", alignItems: "center" },
+  timeText: { color: "white", fontFamily: "Regular", fontSize: 16 },
+  dateText: { color: "white", fontFamily: "Medium", fontSize: 10 },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    marginVertical: 15,
+  },
+  titleContainer: {
+    marginTop: 15,
+  },
+
+  // <<< NEW: Styles for the full-width update button
+  updateButton: {
+    backgroundColor: "#3ECF8E", // Green color for update/confirm
+    width: 340, // Match title line width
+    height: 50,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginTop: 10, // Space above it
+  },
+  updateButtonText: {
     fontFamily: "Regular",
-    textAlign: "center",
-  },
-  dueDateButton: {
-    flexDirection: "row",
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    alignItems: "center",
-  },
-  dueDateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-  },
-  dueDateText: {
-    fontFamily: "ExtraLight",
     color: "white",
-    marginLeft: 10,
-    marginTop: 5,
+    fontSize: 18,
   },
-  deleteIcon: {
-    paddingTop:4,
-    marginLeft:5
+  // <<< END: New button styles
+
+  // STYLES FOR GOAL PICKER
+  pickerContainer: {
+    width: 300,
+    maxHeight: 400,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
   },
-  deleteButton: { backgroundColor: "#D32F2F" },
-  updateButton: { backgroundColor: "#3ECF8E" },
-  closeIcon: { position: "absolute", top: 10, right: 10 },
+  pickerItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
+  },
+  pickerItemText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
+
+  // STYLES FOR DESCRIPTION MODAL
+  descriptionContainer: {
+    width: 350,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+  },
+  descriptionTitle: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  descriptionInput: {
+    minHeight: 150,
+    backgroundColor: "#171717",
+    borderRadius: 8,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 10,
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+    textAlignVertical: "top",
+    marginBottom: 15,
+  },
+  descriptionDoneButton: {
+    backgroundColor: "#3ECF8E",
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  descriptionDoneText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
 });
