@@ -46,7 +46,6 @@ const AddTaskModal = ({
   const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
   const [taskTitle, setTaskTitle] = useState<string | null>();
   const [taskDescription, setTaskDescription] = useState<string | null>();
-  const [isPublic, setIsPublic] = useState<boolean>(true);
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
   const userId = context.session?.user.id;
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(
@@ -133,7 +132,7 @@ const AddTaskModal = ({
           description: taskDescription, // <<< This was already here and correct
           due_date: dueDate?.toISOString(),
           completed: false,
-          is_public: isPublic,
+          is_public: true,
         });
         setShowAddTask(false);
         if (error) {

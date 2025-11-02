@@ -1,8 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import Checkbox from "expo-checkbox";
-import { Dispatch, SetStateAction, useContext, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   Modal,
   Pressable,
@@ -11,6 +16,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
@@ -22,11 +29,22 @@ interface GoalFormModalProps {
 const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
   const context = useContext(AuthContext);
   const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [showDueDatePicker, setShowDueDatePicker] = useState<boolean>(false);
+  const [showPicker, setShowPicker] = useState<boolean>(false);
   const [goalTitle, setGoalTitle] = useState<string | null>();
   const [goalDescription, setGoalDescription] = useState<string | null>();
-  const [isPublic, setIsPublic] = useState<boolean>(true);
+  // <<< MODIFIED: Removed isPublic state
+  const [showDescriptionModal, setShowDescriptionModal] =
+    useState<boolean>(false);
   const userId = context.session?.user.id;
+
+  useEffect(() => {
+    if (!showAddGoal) {
+      setGoalTitle(null);
+      setGoalDescription(null);
+      setDueDate(null);
+      // <<< MODIFIED: Removed setIsPublic
+    }
+  }, [showAddGoal]);
 
   const addGoalSubmitted = async () => {
     if (userId) {
@@ -36,223 +54,274 @@ const GoalFormModal = ({ setShowAddGoal, showAddGoal }: GoalFormModalProps) => {
           title: goalTitle,
           description: goalDescription,
           due_date: dueDate?.toISOString(),
-          is_public: isPublic,
+          is_public: true, // <<< MODIFIED: Set back to default true
         });
         setShowAddGoal(false);
         if (error) {
           console.log(error);
+          alert("Failed to add goal.");
         }
-        setDueDate(null)
       } else {
-        alert("Ttile Required");
+        alert("Title is required");
       }
     }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowPicker(false);
+    if (event.type === "set" && selectedDate) {
+      setDueDate(selectedDate);
+    }
+  };
+
+  const showDatePicker = () => {
+    setShowPicker(true);
   };
 
   return (
     <View>
       <Modal transparent={true} visible={showAddGoal} animationType="fade">
-        {/* This wrapper View centers the content */}
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            {showDueDatePicker && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={new Date()}
-                mode={"date"}
-                is24Hour={true}
-                onChange={(event, selectedDate) => {
-                  setShowDueDatePicker(false);
-                  if (selectedDate) {
-                    setDueDate(selectedDate);
-                  }
-                }}
-              />
-            )}
-            <Text style={styles.heading}>Add Goal:</Text>
-            <Text style={styles.title}>Title:</Text>
-            <TextInput
-              style={styles.titleInput}
-              autoCapitalize="words"
-              autoFocus={true}
-              onChangeText={(title) => setGoalTitle(title)}
-            ></TextInput>
-            <Text style={styles.title}>Description:</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              autoCapitalize="words"
-              multiline={true}
-              onChangeText={(description) => setGoalDescription(description)}
-            ></TextInput>
-            <Pressable
-              style={styles.checkboxContainer}
-              onPress={() => setIsPublic(!isPublic)}
+        <Pressable
+          style={styles.centeredView}
+          onPress={() => setShowAddGoal(false)}
+        >
+          <Pressable
+            style={styles.mainView}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowAddGoal(false)}
             >
-              <Text style={styles.checkboxLabel}>Make Goal Public:</Text>
-              <Checkbox
-                value={isPublic}
-                onValueChange={setIsPublic}
-                color={isPublic ? "#3ECF8E" : "rgba(77, 61, 61, 0.50)"}
+              <AntDesign
+                name="closecircleo"
+                size={22}
+                color="rgba(255,255,255,0.5)"
               />
-            </Pressable>
-            {dueDate ? (
-              <View style={styles.dueDateContainer}>
-                <Text style={styles.dueDateText}>
-                  Due Date: {dueDate.toDateString()}
-                </Text>
-                <TouchableOpacity onPress={() => setDueDate(null)}>
-                  <MaterialCommunityIcons
-                    name="delete"
-                    size={20}
-                    color="red"
-                    style={styles.deleteIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Text
-                style={[styles.dueDateText, { marginLeft: 10, marginTop: 5 }]}
-              >
-                Due Date: --------
-              </Text>
-            )}
+            </TouchableOpacity>
 
-            <View style={styles.buttonContainer}>
+            <View style={styles.titleContainer}>
+              <TextInput
+                placeholder="Goal Title"
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                style={styles.titleInput}
+                autoFocus={true}
+                value={goalTitle || ""}
+                onChangeText={setGoalTitle}
+              />
+              <View style={styles.titleLine} />
+            </View>
+
+            <View style={styles.buttonRow}>
               <TouchableOpacity
-                onPress={() => setShowDueDatePicker(true)}
-                style={[styles.buttons, styles.dueDateButton]}
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={showDatePicker}
               >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {dueDate ? dueDate.toLocaleDateString() : "Due Date"}
+                </Text>
+                <Ionicons name="add-circle" size={24} color="white" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowDescriptionModal(true)}
+              >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {goalDescription
+                    ? "Edit Description"
+                    : "Add Description"}
+                </Text>
                 <Ionicons
-                  name="add-circle"
-                  size={18}
-                  color="#3ECF8E"
-                  style={{ marginRight: 3 }}
+                  name={goalDescription ? "pencil" : "add-circle"}
+                  size={24}
+                  color="white"
                 />
-                <Text style={[styles.buttonText]}>Due Date</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.buttons, styles.closeButton]}
-                onPress={() => setShowAddGoal(false)}
-              >
-                <Text style={[styles.buttonText]}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.buttons, styles.addButton]}
-                onPress={() => addGoalSubmitted()}
-              >
-                <Text style={[styles.buttonText]}>Add Goal</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+
+            {/* <<< START: MODIFIED Button Row */}
+            <View style={[styles.buttonRow, { justifyContent: "center" }]}>
+              {/* Public/Private button removed */}
+              <TouchableOpacity
+                style={[
+                  styles.addGoalButton,
+                  styles.buttons,
+                  styles.addGoalButtonWide, // <<< Added wide style
+                ]}
+                onPress={addGoalSubmitted}
+              >
+                <Text style={styles.buttonText}>Add Goal</Text>
+                <AntDesign name="checkcircle" size={21} color="white" />
+              </TouchableOpacity>
+            </View>
+            {/* <<< END: MODIFIED Button Row */}
+          </Pressable>
+        </Pressable>
       </Modal>
+
+      {/* --- DESCRIPTION MODAL --- */}
+      <Modal
+        transparent={true}
+        visible={showDescriptionModal}
+        animationType="fade"
+        onRequestClose={() => setShowDescriptionModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.centeredView}
+        >
+          <Pressable
+            style={styles.centeredView}
+            onPress={() => setShowDescriptionModal(false)}
+          >
+            <Pressable
+              style={styles.descriptionContainer}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={styles.descriptionTitle}>Goal Description</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Add more details..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline={true}
+                value={goalDescription || ""}
+                onChangeText={setGoalDescription}
+                autoFocus={true}
+              />
+              <TouchableOpacity
+                style={styles.descriptionDoneButton}
+                onPress={() => setShowDescriptionModal(false)}
+              >
+                <Text style={styles.descriptionDoneText}>Done</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* --- DATE TIME PICKER --- */}
+      {showPicker && (
+        <DateTimePicker
+          value={dueDate || new Date()}
+          mode={"date"}
+          is24Hour={true}
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
     </View>
   );
 };
 export default GoalFormModal;
+
 const styles = StyleSheet.create({
-  // New style for the wrapper
+  closeButton: {
+    position: "absolute",
+    top: 7,
+    right: 17,
+    zIndex: 1,
+  },
   centeredView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-
-  modalView: {
-    height: 330,
-    width: "95%",
+  mainView: {
+    height: 210,
+    width: 380,
     backgroundColor: "#171717",
     borderRadius: 20,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
   },
-  heading: {
-    fontSize: 24,
-    fontFamily: "SemiBold",
-    color: "white",
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: "Regular",
-    color: "white",
-    marginLeft: 5,
-  },
   titleInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    color: "white",
-    fontFamily: "Light",
-    textAlignVertical: "top",
-    marginLeft: 10,
-    marginRight: 10,
+    fontSize: 20,
+    fontFamily: "Regular",
+    color: "#FFFFFF",
+    paddingVertical: 0,
+    height: 30,
+    marginLeft: 17,
   },
-  descriptionInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    color: "white",
-    fontFamily: "Light",
-    height: 100,
-    textAlignVertical: "top",
-    marginLeft: 10,
-    marginRight: 10,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-    marginLeft: 10,
-    marginRight: 15,
-  },
-  checkboxLabel: {
-    fontFamily: "ExtraLight",
-    color: "white",
-    marginRight: 5,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 5,
-    marginLeft: 10,
-    marginRight: 10,
-    justifyContent: "space-between",
+  titleLine: {
+    width: 340,
+    height: 1,
+    backgroundColor: "#D9D9D9",
+    alignSelf: "center",
   },
   buttons: {
-    height: 30,
-    width: 110,
-    borderRadius: 15,
-    justifyContent: "center",
+    width: 170,
+    height: 50,
+    borderRadius: 20,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 10,
+  },
+  inputButtons: { backgroundColor: "#242424" },
+  addGoalButton: { backgroundColor: "#3ECF8E" },
+  addGoalButtonWide: {
+    // <<< NEW: Style for wide button
+    width: 355, // Combined width of two original buttons
+    height:50
   },
   buttonText: {
+    fontFamily: "Regular",
     color: "white",
     fontSize: 16,
-    fontFamily: "Regular",
-    textAlign: "center",
+    marginLeft: 0,
+    maxWidth: "80%",
   },
-  dueDateButton: {
+  buttonRow: {
     flexDirection: "row",
+    justifyContent: "space-evenly",
+    marginVertical: 10,
+  },
+  titleContainer: {
+    marginTop: 15,
+    marginBottom:5
+  },
+
+  // --- STYLES FOR DESCRIPTION MODAL ---
+  descriptionContainer: {
+    width: 350,
     backgroundColor: "#242424",
-    borderWidth: 1,
+    borderRadius: 10,
     borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+  },
+  descriptionTitle: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  descriptionInput: {
+    minHeight: 150,
+    backgroundColor: "#171717",
+    borderRadius: 8,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 10,
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+    textAlignVertical: "top",
+    marginBottom: 15,
+  },
+  descriptionDoneButton: {
+    backgroundColor: "#3ECF8E",
+    borderRadius: 20,
+    paddingVertical: 12,
     alignItems: "center",
   },
-  dueDateContainer: {
-    flexDirection: "row",
-    alignItems: "center", // This is the key property for vertical alignment
-    marginLeft: 10,
-    marginTop: 5,
-  },
-  dueDateText: {
-    fontFamily: "ExtraLight",
+  descriptionDoneText: {
     color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
   },
-  deleteIcon: {
-    marginLeft: 8, // Adds a little space between the text and the icon
-  },
-  closeButton: { backgroundColor: "red" },
-  addButton: { backgroundColor: "#3ECF8E" },
 });
