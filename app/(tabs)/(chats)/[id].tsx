@@ -9,6 +9,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useContext, useState } from "react"; // 3. Import useContext
+import CameraModal from "@/components/camera/CameraModal";
 import {
   Alert, // Import Alert for error handling
   KeyboardAvoidingView,
@@ -24,6 +25,7 @@ export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
   const router = useRouter();
   const { session } = useContext(AuthContext); // 4. Get session from context
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
 
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
   const [message, setMessage] = useState(""); // 5. Add state for the message input
@@ -105,7 +107,12 @@ export default function chat() {
             returnKeyType="send"
           />
         </View>
-        <TouchableOpacity style={styles.proofButton}>
+        <TouchableOpacity
+          style={styles.proofButton}
+          onPress={() => {
+            setShowCameraModal(true);
+          }}
+        >
           <Entypo
             name="camera"
             size={30}
@@ -127,6 +134,11 @@ export default function chat() {
         showModal={showAddMembersModal}
         setShowModal={setShowAddMembersModal}
         groupId={id as string}
+      />
+      <CameraModal
+        setShowCameraModal={setShowCameraModal}
+        showCameraModal={showCameraModal}
+        taskId={undefined}
       />
     </KeyboardAvoidingView>
   );

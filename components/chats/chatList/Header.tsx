@@ -10,11 +10,13 @@ import {
   View,
 } from "react-native";
 import CreateGroupModal from "./CreateGroupModal";
+import CameraModal from "@/components/camera/CameraModal";
 
 const Header = () => {
   // State to control the visibility of the dropdown menu
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [showAddGroupModal, setShowAddGroupModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
 
   // Function to toggle the menu's visibility
   const toggleMenu = () => {
@@ -32,7 +34,12 @@ const Header = () => {
       <View style={styles.container}>
         <Text style={styles.heading}>Chats:</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.proofButton}>
+          <TouchableOpacity
+            style={styles.proofButton}
+            onPress={() => {
+              setShowCameraModal(true);
+            }}
+          >
             <Text style={styles.proofButtonText}>Proof</Text>
             <Entypo name="camera" size={25} color="#3ECF8E" />
           </TouchableOpacity>
@@ -66,6 +73,11 @@ const Header = () => {
       <CreateGroupModal
         showAddGroup={showAddGroupModal}
         setShowAddGroup={setShowAddGroupModal}
+      />
+      <CameraModal
+        setShowCameraModal={setShowCameraModal}
+        showCameraModal={showCameraModal}
+        taskId={undefined}
       />
     </View>
   );
