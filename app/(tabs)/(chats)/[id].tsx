@@ -139,6 +139,7 @@ export default function chat() {
         setShowCameraModal={setShowCameraModal}
         showCameraModal={showCameraModal}
         taskId={undefined}
+        groupId={parseInt(id as string)}
       />
     </KeyboardAvoidingView>
   );

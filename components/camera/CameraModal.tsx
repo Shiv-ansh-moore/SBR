@@ -48,12 +48,14 @@ interface CameraModalProps {
   setShowCameraModal: Dispatch<SetStateAction<boolean>>;
   showCameraModal: boolean;
   taskId?: number;
+  groupId?: number;
 }
 
 const CameraModal = ({
   setShowCameraModal,
   showCameraModal,
   taskId,
+  groupId,
 }: CameraModalProps) => {
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -80,17 +82,26 @@ const CameraModal = ({
   }, [showCameraModal]);
 
   useEffect(() => {
+    // [NEW]
     // This hook runs when an image is taken.
-    // If a taskId prop is provided and the tasks are loaded, it finds and selects the corresponding task.
-    if (imageUri && taskId && tasks) {
-      const taskToSelect = tasks.find((task) => task.id === taskId);
-      if (taskToSelect) {
-        setSelectedTask(taskToSelect);
+    // If a groupId prop is provided, it auto-selects that group.
+    if (imageUri && groupId && groups.length > 0) {
+      const groupExists = groups.some((g) => g.id === groupId);
+      if (groupExists) {
+        // Add the group to selectedGroups if it's not already there
+        setSelectedGroups((prevSelected) => {
+          if (!prevSelected.includes(groupId)) {
+            return [...prevSelected, groupId];
+          }
+          return prevSelected;
+        });
       } else {
-        console.warn(`Task with ID ${taskId} not found.`);
+        console.warn(
+          `groupId ${groupId} provided to CameraModal, but user is not a member.`
+        );
       }
     }
-  }, [imageUri, taskId, tasks]);
+  }, [imageUri, groupId, groups]);
 
   const fetchTasks = async () => {
     if (userId) {
@@ -676,6 +687,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
+    width: 130,
+    justifyContent: "center",
   },
   selectionButtonText: {
     color: "white",
