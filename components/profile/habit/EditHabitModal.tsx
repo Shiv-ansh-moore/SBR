@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Octicons from "@expo/vector-icons/Octicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Picker } from "@react-native-picker/picker";
 import {
   Dispatch,
   SetStateAction,
@@ -13,7 +13,10 @@ import {
 } from "react";
 import {
   Alert,
+  FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -22,18 +25,30 @@ import {
   View,
 } from "react-native";
 
-// Type for goals fetched for the picker
-interface UserGoal {
-  id: number;
-  title: string;
-}
-
 interface EditHabitModalProps {
   setShowEditHabit: Dispatch<SetStateAction<boolean>>;
   setEditMode: Dispatch<SetStateAction<boolean>>;
   showEditHabit: boolean;
   habitId: number | null;
 }
+interface UserGoal {
+  id: number;
+  title: string;
+}
+
+// Day labels for text and picker
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAY_MAP = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Helper function to format the day button text
+const formatSelectedDays = (days: number[]): string => {
+  if (days.length === 0) return "Add Days";
+  if (days.length === 7) return "Every Day";
+  if (days.length === 5 && days.join(",") === "1,2,3,4,5") return "Weekdays";
+  if (days.length === 2 && days.join(",") === "0,6") return "Weekends";
+
+  return days.map((d) => DAY_MAP[d]).join(", ");
+};
 
 const EditHabitModal = ({
   setShowEditHabit,
@@ -44,41 +59,29 @@ const EditHabitModal = ({
   const context = useContext(AuthContext);
   const userId = context.session?.user.id;
 
-  // State for form fields, matching the habit schema
-  const [habitTitle, setHabitTitle] = useState<string>("");
-  const [habitDescription, setHabitDescription] = useState<string | null>(null);
+  // Form State
+  const [habitTitle, setHabitTitle] = useState<string>(""); // Use string, not null
+  const [habitDescription, setHabitDescription] = useState<string | null>();
+  const [dueTime, setDueTime] = useState<Date | null>(null);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
-  const [frequency, setFrequency] = useState<string>("Daily");
-  const [dueTimes, setDueTimes] = useState<string[]>([]);
+
+  // Goal Picker State
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
+  const [showGoalPicker, setShowGoalPicker] = useState<boolean>(false);
+
+  // Description Modal State
+  const [showDescriptionModal, setShowDescriptionModal] =
+    useState<boolean>(false);
+
+  // Day Picker Modal State
+  const [showDayPickerModal, setShowDayPickerModal] = useState<boolean>(false);
+
+  // Time Picker State
   const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 
-  // 1. Fetch data when the component mounts or habitId changes
+  // 1. Fetch user's goals for the goal picker (runs once)
   useEffect(() => {
-    // Fetches the specific habit to be edited
-    const getHabitInfo = async () => {
-      if (habitId) {
-        const { data, error } = await supabase
-          .from("habits")
-          .select("*")
-          .eq("id", habitId)
-          .single();
-
-        if (error) {
-          Alert.alert("Error", "Could not fetch habit details.");
-          console.error("Error fetching habit:", error);
-        } else if (data) {
-          // 2. Populate state with the fetched data
-          setHabitTitle(data.title);
-          setHabitDescription(data.description);
-          setSelectedGoalId(data.goal_id);
-          setFrequency(data.frequency || "Daily");
-          setDueTimes((data.due_times as string[]) || []);
-        }
-      }
-    };
-
-    // Fetches all user goals for the dropdown picker
     const fetchUserGoals = async () => {
       if (userId) {
         const { data, error } = await supabase
@@ -93,21 +96,48 @@ const EditHabitModal = ({
         }
       }
     };
+    fetchUserGoals();
+  }, [userId]);
+
+  // 2. Fetch the specific habit's data when the modal is opened
+  useEffect(() => {
+    const getHabitInfo = async () => {
+      if (habitId) {
+        const { data, error } = await supabase
+          .from("habits")
+          .select("title, description, goal_id, days_of_week, due_time")
+          .eq("id", habitId)
+          .single();
+
+        if (error) {
+          Alert.alert("Error", "Could not fetch habit details.");
+          console.error("Error fetching habit:", error);
+        } else if (data) {
+          // Populate state with the fetched data
+          setHabitTitle(data.title);
+          setHabitDescription(data.description);
+          setSelectedGoalId(data.goal_id);
+          setSelectedDays((data.days_of_week as number[]) || []);
+          // Convert ISO string back to Date object for the picker
+          setDueTime(data.due_time ? new Date(data.due_time) : null);
+        }
+      }
+    };
 
     if (showEditHabit) {
       getHabitInfo();
-      fetchUserGoals();
     }
-  }, [habitId, showEditHabit, userId]); // Re-run when modal is shown
+  }, [habitId, showEditHabit]); // Re-run when modal is shown
 
-  // 3. Handle the form submission to UPDATE the habit
+  // --- Handlers ---
+
   const handleEditHabit = async () => {
     if (!habitId) {
-      Alert.alert("Error", "No habit selected.");
+      Alert.alert("Error", "No habit ID found to update.");
       return;
     }
     if (!habitTitle || habitTitle.trim() === "") {
-      Alert.alert("Title Required", "Please enter a title for your habit.");
+      alert("Title is required");
       return;
     }
 
@@ -117,290 +147,467 @@ const EditHabitModal = ({
         title: habitTitle,
         description: habitDescription,
         goal_id: selectedGoalId,
-        frequency: frequency,
-        due_times: dueTimes.length > 0 ? dueTimes : null,
+        days_of_week: selectedDays,
+        due_time: dueTime?.toISOString(),
       })
       .eq("id", habitId);
 
     if (error) {
-      Alert.alert("Error", "Could not update the habit.");
-      console.error("Error updating habit:", error);
+      console.log("Error updating habit:", error.message);
+      alert("Failed to update habit.");
     } else {
-      setEditMode(false); // Turn off edit mode on the parent component
-      setShowEditHabit(false); // Close modal on success
+      handleClose(); // Close modal on success
     }
   };
 
-  // --- UI Helper Functions (copied from HabitFormModal) ---
-  const onTimeSelected = (event: any, selectedDate?: Date) => {
+  const handleTimeChange = (event: any, selectedDate?: Date) => {
     setShowTimePicker(false);
-    if (selectedDate) {
-      const timeString = selectedDate.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      if (!dueTimes.includes(timeString)) {
-        setDueTimes([...dueTimes, timeString].sort());
-      }
+    if (event.type === "set" && selectedDate) {
+      setDueTime(selectedDate);
     }
   };
 
-  const removeDueTime = (timeToRemove: string) => {
-    setDueTimes(dueTimes.filter((time) => time !== timeToRemove));
+  const showTimePickerModal = () => {
+    setShowTimePicker(true);
   };
 
-  const handleCancel = () => {
+  const toggleDay = (dayIndex: number) => {
+    setSelectedDays((prevDays) =>
+      prevDays.includes(dayIndex)
+        ? prevDays.filter((d) => d !== dayIndex).sort((a, b) => a - b)
+        : [...prevDays, dayIndex].sort((a, b) => a - b),
+    );
+  };
+
+  // Close modal and reset parent's edit state
+  const handleClose = () => {
     setShowEditHabit(false);
     setEditMode(false);
   };
 
+  const selectedGoal = userGoals.find((g) => g.id === selectedGoalId);
+
   return (
     <View>
+      {/* --- MAIN HABIT EDIT MODAL --- */}
       <Modal transparent={true} visible={showEditHabit} animationType="fade">
-        <Pressable style={styles.centeredView} onPress={handleCancel}>
-          <Pressable style={styles.modalView}>
-            {showTimePicker && (
-              <DateTimePicker
-                value={new Date()}
-                mode={"time"}
-                is24Hour={true}
-                onChange={onTimeSelected}
+        <Pressable style={styles.centeredView} onPress={handleClose}>
+          <Pressable
+            style={styles.mainView}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <AntDesign
+                name="closecircleo"
+                size={22}
+                color="rgba(255,255,255,0.5)"
               />
-            )}
+            </TouchableOpacity>
 
-            <Text style={styles.heading}>Edit Habit:</Text>
-            <Text style={styles.title}>Title:</Text>
-            <TextInput
-              style={styles.titleInput}
-              autoCapitalize="words"
-              autoFocus={true}
-              value={habitTitle}
-              onChangeText={setHabitTitle}
-            />
-
-            <Text style={styles.title}>Description:</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              autoCapitalize="sentences"
-              multiline={true}
-              value={habitDescription || ""}
-              onChangeText={setHabitDescription}
-            />
-
-            <View style={styles.pickerRow}>
-              <View style={{ flex: 1, marginRight: 5 }}>
-                <Text style={styles.title}>Goal:</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={selectedGoalId}
-                    onValueChange={(itemValue) => setSelectedGoalId(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor={"#FFF"}
-                  >
-                    <Picker.Item label="No Goal" value={null} />
-                    {userGoals.map((goal) => (
-                      <Picker.Item
-                        key={goal.id}
-                        label={goal.title}
-                        value={goal.id}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
-
-              <View style={{ flex: 1, marginLeft: 5 }}>
-                <Text style={styles.title}>Frequency:</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={frequency}
-                    onValueChange={(itemValue) => setFrequency(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor={"#FFF"}
-                  >
-                    <Picker.Item label="Daily" value="Daily" />
-                    <Picker.Item label="Weekly" value="Weekly" />
-                    <Picker.Item label="Monthly" value="Monthly" />
-                  </Picker>
-                </View>
-              </View>
+            <View style={styles.titleContainer}>
+              <TextInput
+                placeholder="Habit Title"
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                style={styles.titleInput}
+                autoFocus={true}
+                value={habitTitle || ""}
+                onChangeText={setHabitTitle}
+              />
+              <View style={styles.titleLine} />
             </View>
 
-            <View style={styles.dueTimesContainer}>
-              <Text style={styles.title}>Due Times:</Text>
-              <View style={styles.dueTimesList}>
-                {dueTimes.length > 0 ? (
-                  dueTimes.map((time) => (
-                    <View key={time} style={styles.dueTimeItem}>
-                      <Text style={styles.dueDateText}>{time}</Text>
-                      <TouchableOpacity onPress={() => removeDueTime(time)}>
-                        <MaterialCommunityIcons
-                          name="close-circle"
-                          size={20}
-                          color="red"
-                          style={styles.deleteIcon}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={[styles.dueDateText, { marginLeft: 5 }]}>
-                    None
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.buttonContainer}>
+            {/* --- Row 1: Goal & Time --- */}
+            <View style={styles.buttonRow}>
               <TouchableOpacity
-                onPress={() => setShowTimePicker(true)}
-                style={[styles.buttons, styles.dueDateButton]}
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowGoalPicker(true)}
               >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {selectedGoal ? selectedGoal.title : "No Goal"}
+                </Text>
+                <Octicons name="triangle-down" size={24} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={showTimePickerModal}
+              >
+                <Text style={styles.buttonText}>
+                  {dueTime
+                    ? dueTime.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Due Time"}
+                </Text>
+                <Ionicons name="add-circle" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {/* --- Row 2: Description & Days --- */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowDescriptionModal(true)}
+              >
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {habitDescription
+                    ? "Edit Description"
+                    : "Add Description"}
+                </Text>
                 <Ionicons
-                  name="add-circle"
-                  size={18}
-                  color="#3ECF8E"
-                  style={{ marginRight: 3 }}
+                  name={habitDescription ? "pencil" : "add-circle"}
+                  size={24}
+                  color="white"
                 />
-                <Text style={styles.buttonText}>Add Time</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.buttons, styles.closeButton]}
-                onPress={handleCancel}
+                style={[styles.inputButtons, styles.buttons]}
+                onPress={() => setShowDayPickerModal(true)}
               >
-                <Text style={styles.buttonText}>Cancel</Text>
+                <Text style={styles.buttonText} numberOfLines={1}>
+                  {formatSelectedDays(selectedDays)}
+                </Text>
+                <Ionicons
+                  name={selectedDays.length > 0 ? "pencil" : "add-circle"}
+                  size={24}
+                  color="white"
+                />
               </TouchableOpacity>
+            </View>
+
+            {/* --- Row 3: Save Changes (Full Width) --- */}
+            <View style={[styles.buttonRow, { justifyContent: "center" }]}>
               <TouchableOpacity
-                style={[styles.buttons, styles.addButton]}
+                style={[
+                  styles.addHabitButton, // Using same style as "Add"
+                  styles.buttons,
+                  styles.addHabitButtonWide,
+                ]}
                 onPress={handleEditHabit}
               >
-                <Text style={styles.buttonText}>Save</Text>
+                <Text style={styles.buttonText}>Save Changes</Text>
+                <AntDesign name="checkcircle" size={21} color="white" />
               </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* --- GOAL PICKER MODAL --- */}
+      <Modal
+        transparent={true}
+        visible={showGoalPicker}
+        animationType="fade"
+        onRequestClose={() => setShowGoalPicker(false)}
+      >
+        <Pressable
+          style={styles.centeredView}
+          onPress={() => setShowGoalPicker(false)}
+        >
+          <Pressable
+            style={styles.pickerContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <FlatList
+              data={userGoals}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedGoalId(item.id);
+                    setShowGoalPicker(false);
+                  }}
+                >
+                  <Text style={styles.pickerItemText}>{item.title}</Text>
+                </TouchableOpacity>
+              )}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  style={styles.pickerItem}
+                  onPress={() => {
+                    setSelectedGoalId(null);
+                    setShowGoalPicker(false);
+                  }}
+                >
+                  <Text style={styles.pickerItemText}>No Goal</Text>
+                </TouchableOpacity>
+              }
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* --- DESCRIPTION MODAL --- */}
+      <Modal
+        transparent={true}
+        visible={showDescriptionModal}
+        animationType="fade"
+        onRequestClose={() => setShowDescriptionModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.centeredView}
+        >
+          <Pressable
+            style={styles.centeredView}
+            onPress={() => setShowDescriptionModal(false)}
+          >
+            <Pressable
+              style={styles.descriptionContainer}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={styles.descriptionTitle}>Habit Description</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Add more details..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline={true}
+                value={habitDescription || ""}
+                onChangeText={setHabitDescription}
+                autoFocus={true}
+              />
+              <TouchableOpacity
+                style={styles.descriptionDoneButton}
+                onPress={() => setShowDescriptionModal(false)}
+              >
+                <Text style={styles.descriptionDoneText}>Done</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* --- DAY PICKER MODAL --- */}
+      <Modal
+        transparent={true}
+        visible={showDayPickerModal}
+        animationType="fade"
+        onRequestClose={() => setShowDayPickerModal(false)}
+      >
+        <Pressable
+          style={styles.centeredView}
+          onPress={() => setShowDayPickerModal(false)}
+        >
+          <Pressable
+            style={styles.dayPickerContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={styles.descriptionTitle}>Select Days</Text>
+            <View style={styles.daysContainer}>
+              {DAY_LABELS.map((day, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dayButton,
+                    selectedDays.includes(index) && styles.dayButtonSelected,
+                  ]}
+                  onPress={() => toggleDay(index)}
+                >
+                  <Text
+                    style={[
+                      styles.dayText,
+                      selectedDays.includes(index) && styles.dayTextSelected,
+                    ]}
+                  >
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.descriptionDoneButton}
+              onPress={() => setShowDayPickerModal(false)}
+            >
+              <Text style={styles.descriptionDoneText}>Done</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* --- TIME PICKER --- */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={dueTime || new Date()}
+          mode={"time"}
+          is24Hour={true}
+          display="default"
+          onChange={handleTimeChange}
+        />
+      )}
     </View>
   );
 };
 export default EditHabitModal;
 
-// Styles are copied from your HabitFormModal for consistency
+// Styles are copied from HabitFormModal for 1:1 consistency
 const styles = StyleSheet.create({
+  closeButton: {
+    position: "absolute",
+    top: 7,
+    right: 17,
+    zIndex: 1,
+  },
   centeredView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  modalView: {
-    minHeight: 480, // Using minHeight for flexibility
-    width: "95%",
+  mainView: {
+    height: 280,
+    width: 380,
     backgroundColor: "#171717",
     borderRadius: 20,
     borderColor: "rgba(77, 61, 61, 0.50)",
     borderWidth: 1,
-    padding: 10,
-  },
-  heading: {
-    fontSize: 24,
-    fontFamily: "SemiBold",
-    color: "white",
-    marginLeft: 5,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: "Regular",
-    color: "white",
-    marginLeft: 5,
-    marginTop: 5,
   },
   titleInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    color: "white",
-    fontFamily: "Light",
-    paddingHorizontal: 15,
-    height: 40,
+    fontSize: 20,
+    fontFamily: "Regular",
+    color: "#FFFFFF",
+    paddingVertical: 0,
+    height: 30,
+    marginLeft: 17,
   },
-  descriptionInput: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    color: "white",
-    fontFamily: "Light",
-    height: 70,
-    textAlignVertical: "top",
-    padding: 15,
-  },
-  pickerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  pickerContainer: {
-    backgroundColor: "#242424",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-  },
-  picker: {
-    color: "white",
-    width: "100%",
-  },
-  dueTimesContainer: {
-    marginTop: 5,
-  },
-  dueTimesList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  dueTimeItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#242424",
-    borderRadius: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    margin: 4,
-  },
-  dueDateText: {
-    fontFamily: "ExtraLight",
-    color: "white",
-  },
-  deleteIcon: {
-    marginLeft: 5,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: "auto",
-    justifyContent: "space-between",
+  titleLine: {
+    width: 340,
+    height: 1,
+    backgroundColor: "#D9D9D9",
+    alignSelf: "center",
   },
   buttons: {
-    height: 35,
-    width: 110,
-    borderRadius: 15,
-    justifyContent: "center",
+    width: 170,
+    height: 50,
+    borderRadius: 20,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 10,
+  },
+  inputButtons: { backgroundColor: "#242424" },
+  addHabitButton: { backgroundColor: "#3ECF8E" },
+  addHabitButtonWide: {
+    width: 355,
+    height: 50,
   },
   buttonText: {
+    fontFamily: "Regular",
     color: "white",
     fontSize: 16,
-    fontFamily: "Regular",
-    textAlign: "center",
+    marginLeft: 0,
+    maxWidth: "80%",
   },
-  dueDateButton: {
+  buttonRow: {
     flexDirection: "row",
-    backgroundColor: "#242424",
+    justifyContent: "space-evenly",
+    marginVertical: 10,
+  },
+  titleContainer: {
+    marginTop: 15,
+  },
+
+  // --- STYLES FOR DAY PICKER ---
+  daysContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    marginVertical: 15,
+  },
+  dayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#171717",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",
   },
-  closeButton: { backgroundColor: "red" },
-  addButton: { backgroundColor: "#3ECF8E" },
+  dayButtonSelected: {
+    backgroundColor: "#3ECF8E",
+    borderColor: "#3ECF8E",
+  },
+  dayText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
+  dayTextSelected: {
+    color: "white",
+  },
+
+  // --- STYLES FOR GOAL PICKER ---
+  pickerContainer: {
+    width: 300,
+    maxHeight: 400,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+  },
+  pickerItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
+  },
+  pickerItemText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
+
+  // --- STYLES FOR DESCRIPTION MODAL ---
+  descriptionContainer: {
+    width: 350,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+  },
+  descriptionTitle: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  descriptionInput: {
+    minHeight: 150,
+    backgroundColor: "#171717",
+    borderRadius: 8,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 10,
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+    textAlignVertical: "top",
+    marginBottom: 15,
+  },
+  descriptionDoneButton: {
+    backgroundColor: "#3ECF8E",
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  descriptionDoneText: {
+    color: "white",
+    fontFamily: "Regular",
+    fontSize: 16,
+  },
+
+  // --- STYLE FOR DAY PICKER MODAL ---
+  dayPickerContainer: {
+    width: 350,
+    backgroundColor: "#242424",
+    borderRadius: 10,
+    borderColor: "rgba(77, 61, 61, 0.50)",
+    borderWidth: 1,
+    padding: 20,
+  },
 });
