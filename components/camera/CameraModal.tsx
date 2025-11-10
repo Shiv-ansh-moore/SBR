@@ -1,4 +1,3 @@
-import chats from "@/app/(tabs)/(chats)/chats";
 import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +25,7 @@ import {
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -63,13 +63,14 @@ const CameraModal = ({
   const userId = useContext(AuthContext).session?.user.id;
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [groups, setGroups] = useState<Groups[]>([]);
-
-  // New state for selections and modal visibility
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [showTaskSelector, setShowTaskSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const [newTaskTitle, setNewTaskTitle] = useState(""); // [NEW]
+  const [isCreatingTask, setIsCreatingTask] = useState(false); // [NEW]
 
   useEffect(() => {
     if (showCameraModal) {
@@ -137,6 +138,7 @@ const CameraModal = ({
     setImageUri(undefined);
     setSelectedGroups([]);
     setSelectedTask(null);
+    setNewTaskTitle("");
   };
 
   const toggleGroupSelection = (groupId: number) => {
@@ -152,8 +154,45 @@ const CameraModal = ({
       setSelectedTask(null);
     } else {
       setSelectedTask(task);
+      setNewTaskTitle("");
     }
     setShowTaskSelector(false);
+  };
+
+  const handleCreateQuickTask = async () => {
+    if (!newTaskTitle.trim() || !userId || isCreatingTask) return;
+
+    setIsCreatingTask(true);
+    try {
+      const { data: newTask, error } = await supabase
+        .from("task")
+        .insert({
+          user_id: userId,
+          title: newTaskTitle.trim(),
+          completed: false, // Will be marked completed in handleSend
+          is_public: false, // Default to private for a quick task
+        })
+        .select("id, title") // Select fields matching the Task interface
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (newTask) {
+        // Add new task to our local tasks list
+        setTasks((prevTasks) => [...(prevTasks || []), newTask]);
+        // Set it as the selected task
+        setSelectedTask(newTask);
+        // Clean up and close modal
+        setNewTaskTitle("");
+        setShowTaskSelector(false);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", "Could not create task: " + error.message);
+    } finally {
+      setIsCreatingTask(false);
+    }
   };
 
   const handleSend = async () => {
@@ -328,6 +367,33 @@ const CameraModal = ({
               <TouchableWithoutFeedback>
                 <View style={styles.selectorContent}>
                   <Text style={styles.selectorTitle}>Select a Task</Text>
+                  <View style={styles.quickTaskContainer}>
+                    <TextInput
+                      style={styles.quickTaskInput}
+                      placeholder="Or create a new task..."
+                      placeholderTextColor="#888"
+                      value={newTaskTitle}
+                      onChangeText={setNewTaskTitle}
+                      editable={!isCreatingTask}
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.quickTaskButton,
+                        (!newTaskTitle.trim() || isCreatingTask) &&
+                          styles.quickTaskButtonDisabled,
+                      ]}
+                      onPress={handleCreateQuickTask}
+                      disabled={!newTaskTitle.trim() || isCreatingTask}
+                    >
+                      {isCreatingTask ? (
+                        <ActivityIndicator size="small" color="#171717" />
+                      ) : (
+                        <Text style={styles.quickTaskButtonText}>Add</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.divider} />
+                  {/* --- End Quick Task UI --- */}
                   <FlatList
                     data={tasks}
                     keyExtractor={(item) => item.id.toString()}
@@ -672,5 +738,42 @@ const styles = StyleSheet.create({
     color: "#888",
     textAlign: "center",
     marginTop: 20,
+  },
+  quickTaskContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  quickTaskInput: {
+    flex: 1,
+    backgroundColor: "#3a3a3a",
+    color: "white",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    fontSize: 16,
+    marginRight: 10,
+  },
+  quickTaskButton: {
+    backgroundColor: "#3ECF8E",
+    padding: 10,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 44, // Match input height
+    minWidth: 50,
+  },
+  quickTaskButtonDisabled: {
+    backgroundColor: "#555",
+  },
+  quickTaskButtonText: {
+    color: "#171717",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#3a3a3a",
+    marginVertical: 10,
   },
 });
