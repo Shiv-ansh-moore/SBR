@@ -66,7 +66,7 @@ const CameraModal = ({
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [groups, setGroups] = useState<Groups[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>();
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [showTaskSelector, setShowTaskSelector] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -82,9 +82,6 @@ const CameraModal = ({
   }, [showCameraModal]);
 
   useEffect(() => {
-    // [NEW]
-    // This hook runs when an image is taken.
-    // If a groupId prop is provided, it auto-selects that group.
     if (imageUri && groupId && groups.length > 0) {
       const groupExists = groups.some((g) => g.id === groupId);
       if (groupExists) {
@@ -102,6 +99,22 @@ const CameraModal = ({
       }
     }
   }, [imageUri, groupId, groups]);
+
+  useEffect(() => {
+    if (taskId && tasks && tasks.length > 0) {
+      const taskToSelect = tasks.find((t) => t.id === taskId);
+      if (taskToSelect) {
+        setSelectedTask(taskToSelect);
+      } else if (tasks.length > 0) {
+        // If the task wasn't found (e.g., it might be completed/not fetched),
+        // optionally select the first task, or just leave it blank.
+        // For now, we'll leave it blank as requested task wasn't found.
+        console.warn(`Task with id ${taskId} not found in the incomplete task list.`);
+      }
+    }
+  }, [taskId, tasks]);
+  
+  
 
   const fetchTasks = async () => {
     if (userId) {
@@ -128,6 +141,8 @@ const CameraModal = ({
       }
     }
   };
+
+  
 
   const toggleCameraFacing = () => {
     setFacing((current) => (current === "back" ? "front" : "back"));
