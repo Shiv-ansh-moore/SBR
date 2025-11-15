@@ -92,7 +92,9 @@ const FriendProofOverViewList = () => {
       numColumns={2}
       ListEmptyComponent={
         <View style={styles.centered}>
-          <Text>You haven't added any friends yet.</Text>
+          <Text style={styles.emptyText}>
+            You haven't added any friends yet.
+          </Text>
         </View>
       }
       contentContainerStyle={styles.listContainer}
@@ -115,5 +117,11 @@ const styles = StyleSheet.create({
   emptyItem: {
     flex: 1,
     margin: 8,
+  },
+  emptyText: {
+    fontFamily: "Regular",
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
   },
 });

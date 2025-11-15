@@ -2,9 +2,9 @@ import { Session } from "@supabase/supabase-js";
 import {
   createContext,
   ReactNode,
+  useCallback,
   useEffect,
   useState,
-  useCallback,
 } from "react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -39,14 +39,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const refreshProfile = useCallback(async () => {
     if (session?.user?.id) {
       try {
-        const { data: userData, error: userError } = await supabase
+        const { data: userDataArray, error: userError } = await supabase
           .from("users")
           .select("profile_pic")
-          .eq("id", session.user.id)
-          .single();
+          .eq("id", session.user.id);
 
         if (userError) throw userError;
 
+        // Get the first item from the array (which will be undefined if no row was found)
+        const userData = userDataArray?.[0];
         const imagePath = userData?.profile_pic;
 
         if (imagePath) {
@@ -55,19 +56,25 @@ export default function AuthProvider({ children }: AuthProviderProps) {
             .getPublicUrl(imagePath);
 
           // Append a timestamp to the URL to bypass the cache
-          const cacheBustedUrl = `${urlData.publicUrl}?t=${new Date().getTime()}`;
+          const cacheBustedUrl = `${
+            urlData.publicUrl
+          }?t=${new Date().getTime()}`;
           setProfilePicLink(cacheBustedUrl);
         } else {
+          // Handles both "no profile row found" (userData is undefined)
+          // and "profile row found but profile_pic is null" (imagePath is null)
           setProfilePicLink(null);
         }
       } catch (error) {
+        // This catch block is now primarily for network or permission errors,
+        // not for the "0 rows returned" error.
         console.error("Error fetching profile picture:", error);
         setProfilePicLink(null);
       }
     } else {
       setProfilePicLink(null);
     }
-  }, [session]); // This function updates if the session object changes
+  }, [session]);
 
   // Effect for initial authentication and session listening
   useEffect(() => {

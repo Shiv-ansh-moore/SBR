@@ -1,5 +1,3 @@
-// FriendProofOverView.js
-
 import { supabase } from "@/lib/supabaseClient";
 import { Fragment, useEffect, useState } from "react"; // ✨ Import Fragment
 import {

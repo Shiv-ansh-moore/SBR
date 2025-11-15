@@ -106,9 +106,6 @@ const CameraModal = ({
       if (taskToSelect) {
         setSelectedTask(taskToSelect);
       } else if (tasks.length > 0) {
-        // If the task wasn't found (e.g., it might be completed/not fetched),
-        // optionally select the first task, or just leave it blank.
-        // For now, we'll leave it blank as requested task wasn't found.
         console.warn(`Task with id ${taskId} not found in the incomplete task list.`);
       }
     }

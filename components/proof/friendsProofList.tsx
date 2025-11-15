@@ -1,6 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import FriendProof from "./FriendProof";
 
 interface ProofWithDetails {
@@ -95,7 +101,9 @@ const FriendsProofList = () => {
       <FlatList
         data={proofs}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => ( // Use { item } destructuring
+        renderItem={(
+          { item } // Use { item } destructuring
+        ) => (
           <View style={styles.listContent}>
             <FriendProof proof={item} />
           </View>
@@ -103,7 +111,14 @@ const FriendsProofList = () => {
         // Props for pagination
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5} // How close to the bottom to trigger
-        ListFooterComponent={renderFooter} // Show the spinner at the bottom
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Text style={styles.emptyText}>
+              You haven't added any friends yet.
+            </Text>
+          </View>
+        } // Show the spinner at the bottom
       />
     </View>
   );
@@ -124,6 +139,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20, // Add some padding to the loader
+    paddingVertical: 20,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  emptyText: {
+    fontFamily: "Regular",
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
   },
 });
