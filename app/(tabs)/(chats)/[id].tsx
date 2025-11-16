@@ -7,8 +7,8 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useContext, useState } from "react"; // 3. Import useContext
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useContext, useState, useCallback } from "react";
 import CameraModal from "@/components/camera/CameraModal";
 import {
   Alert, // Import Alert for error handling
@@ -24,11 +24,32 @@ import {
 export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
   const router = useRouter();
-  const { session } = useContext(AuthContext); // 4. Get session from context
+  const { session } = useContext(AuthContext);
   const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
-
+  const groupId = parseInt(id as string);
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
-  const [message, setMessage] = useState(""); // 5. Add state for the message input
+  const [message, setMessage] = useState("");
+
+  // In (tabs)/(chats)/[id].tsx
+
+  const markAsRead = useCallback(async () => {
+    if (!session?.user || !groupId) return;
+    const { data, error, count } = await supabase // <-- Also get 'data' and 'count'
+      .from("chat_members")
+      .update({ last_read: new Date().toISOString() })
+      .match({ user_id: session.user.id, group_id: groupId });
+
+    if (error) {
+      console.error("Error marking as read:", error);
+    }
+  }, [session?.user, groupId]);
+
+  // 4. ADD THIS: Run the function every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      markAsRead();
+    }, [markAsRead])
+  );
 
   // 6. Function to handle sending the message
   const handleSendMessage = async () => {

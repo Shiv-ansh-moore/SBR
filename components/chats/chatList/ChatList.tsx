@@ -2,8 +2,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useContext, useEffect, useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useContext, useEffect, useState, useCallback } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -12,7 +12,6 @@ import {
   View,
 } from "react-native";
 
-
 // --- Interfaces ---
 interface Groups {
   created_at: string;
@@ -20,6 +19,7 @@ interface Groups {
   group_pic: string | null;
   id: number;
   name: string;
+  unread_count: number;
 }
 
 // NEW: Define the structure of the last message data we expect
@@ -31,15 +31,27 @@ interface LastMessage {
 
 // --- NEW: GroupListItem Component ---
 // This component manages the state for a single group row
-const GroupListItem = ({ item }: { item: Groups }) => {
+const GroupListItem = ({
+  item,
+  userId,
+  onGroupUpdate, // 1. Accept the new callback prop
+}: {
+  item: Groups; // We still only need the basic Groups info to render
+  userId: string;
+  onGroupUpdate: (groupId: number, messageTimestamp: string) => void; // Define its type
+}) => {
   const router = useRouter();
   const [lastMessage, setLastMessage] = useState<LastMessage | null>(null);
+  const [unreadCount, setUnreadCount] = useState(item.unread_count);
 
-  // This function now fetches the last message for *this* group
+  useEffect(() => {
+    setUnreadCount(item.unread_count);
+  }, [item.unread_count]);
+
   const fetchMostRecentMessage = async () => {
     const { data, error } = await supabase
       .from("chat_messages")
-      .select("created_at, message_type, users(nickname)") // Select nickname from joined users
+      .select("created_at, message_type, users(nickname)")
       .eq("group_id", item.id)
       .limit(1)
       .order("created_at", { ascending: false });
@@ -51,17 +63,21 @@ const GroupListItem = ({ item }: { item: Groups }) => {
 
     if (data && data.length > 0) {
       setLastMessage(data[0] as LastMessage);
+      // 2. Report the *real* last message time back to the parent
+      onGroupUpdate(item.id, data[0].created_at);
     } else {
-      setLastMessage(null); // No messages in this group yet
+      setLastMessage(null); // No messages in this group
+      // 3. Report the group's creation time as a fallback
+      // This ensures it's sorted correctly relative to other empty groups
+      onGroupUpdate(item.id, item.created_at);
     }
   };
 
-  // This useEffect handles both initial fetch and real-time updates
   useEffect(() => {
-    // 1. Fetch the last message when the component mounts
+    // This will run on mount, fetching the initial last message
+    // and calling onGroupUpdate for the first time.
     fetchMostRecentMessage();
 
-    // 2. Set up real-time subscription for NEW messages in THIS group
     const channel = supabase
       .channel(`group_messages_${item.id}`)
       .on(
@@ -73,18 +89,31 @@ const GroupListItem = ({ item }: { item: Groups }) => {
           filter: `group_id=eq.${item.id}`,
         },
         (payload) => {
-          // New message arrived! Re-fetch to get the latest.
-          // This is simpler and ensures we get the joined user data.
+          // A new message arrived!
+          const newMessage = payload.new as {
+            user_id: string;
+            created_at: string; // Get the timestamp directly from the payload
+          };
+
+          // 1. Re-fetch message details for the UI (like sender's nickname)
           fetchMostRecentMessage();
+
+          // 2. *Immediately* tell the parent to re-sort
+          // This is faster than waiting for the fetch above to complete
+          onGroupUpdate(item.id, newMessage.created_at);
+
+          // 3. Increment the unread count in the UI
+          if (newMessage.user_id !== userId) {
+            setUnreadCount((currentCount) => currentCount + 1);
+          }
         }
       )
       .subscribe();
 
-    // 3. Cleanup function: Unsubscribe from the channel when unmounting
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [item.id]); // Re-run if the group ID changes
+  }, [item.id, userId, onGroupUpdate]);
 
   // --- Helper functions for rendering ---
   const formatMessageText = () => {
@@ -151,11 +180,21 @@ const GroupListItem = ({ item }: { item: Groups }) => {
 
       {/* Time & Unread Count */}
       <View style={styles.lastMessageContainer}>
-        {/* Use the dynamic message time */}
-        <Text style={styles.timeOfLastMessage}>{formatMessageTime()}</Text>
-        {/* Note: Unread count logic is not implemented yet */}
+        {/* 1. Conditionally style the time text */}
+        <Text
+          style={[
+            styles.timeOfLastMessage,
+            unreadCount === 0 && { color: "#888" }, // Apply grey color if unreadCount is 0
+          ]}
+        >
+          {formatMessageTime()}
+        </Text>
+
+        {/* 2. Always render the bubble, but only show text if count > 0 */}
         <View style={styles.unreadMessageCount}>
-          {/* <Text style={styles.timeOfLastMessage}>4</Text> */}
+          {unreadCount > 0 && (
+            <Text style={styles.timeOfLastMessage}>{unreadCount}</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -163,55 +202,117 @@ const GroupListItem = ({ item }: { item: Groups }) => {
 };
 
 // --- UPDATED: ChatList Component ---
+// --- Interfaces ---
+interface Groups {
+  created_at: string;
+  created_by: string | null;
+  group_pic: string | null;
+  id: number;
+  name: string;
+  unread_count: number;
+}
+
+// NEW: This interface will be used for our state
+// It includes the original group data + the timestamp we need for sorting
+interface GroupWithLastMessage extends Groups {
+  last_message_at: string; // We'll use this for sorting
+}
+
+// ... (Keep LastMessage and GroupListItem component for now) ...
+
+// --- UPDATED: ChatList Component ---
 const ChatList = () => {
   const context = useContext(AuthContext);
-  const [groups, setGroups] = useState<Groups[]>([]);
-  // router is no longer needed here
+  // 1. Change the state to use the new, richer interface
+  const [groups, setGroups] = useState<GroupWithLastMessage[]>([]);
 
-  // No changes needed to this function
+  // 2. Create a sorting function
+  // We'll use useCallback to prevent re-creating this function on every render
+  const sortGroups = (
+    updatedGroups: GroupWithLastMessage[]
+  ): GroupWithLastMessage[] => {
+    return [...updatedGroups].sort((a, b) => {
+      // Sort by last_message_at in descending order (newest first)
+      return (
+        new Date(b.last_message_at).getTime() -
+        new Date(a.last_message_at).getTime()
+      );
+    });
+  };
+
+  // 3. Update fetchGroups to use the new state shape
   const fetchGroups = async () => {
     if (context.session?.user.id) {
-      const { data, error } = await supabase
-        .from("chat_members")
-        .select("groups(*)")
-        .eq("user_id", context.session.user.id);
+      const { data, error } = await supabase.rpc(
+        "get_groups_with_unread_counts",
+        {
+          p_user_id: context.session.user.id,
+        }
+      );
 
       if (error) {
-        console.error("Error fetching groups:", error);
+        console.error("Error fetching groups with counts:", error);
         return;
       }
 
       if (data) {
-        const extractedGroups = data
-          .map((item) => item.groups)
-          .filter((group): group is Groups => group !== null);
-        setGroups(extractedGroups);
+        // Map the data from the RPC (Groups[]) to our new state (GroupWithLastMessage[])
+        // We use the group's created_at as a *temporary* timestamp
+        // The child component will send us the *real* last message time shortly.
+        const initialGroups = data.map((group: Groups) => ({
+          ...group,
+          last_message_at: group.created_at, // Use as fallback for initial sort
+        }));
+
+        // Set the initial, sorted state
+        setGroups(sortGroups(initialGroups));
       }
     }
   };
 
-  // REMOVED fetchMostRecentMessage (moved into GroupListItem)
+  // 4. Create a callback function to handle updates from children
+  // This is the key to lifting state up.
+  const handleGroupUpdate = useCallback(
+    (groupId: number, messageTimestamp: string) => {
+      setGroups((currentGroups) => {
+        // Find the group and update its last_message_at timestamp
+        const updatedGroups = currentGroups.map((group) =>
+          group.id === groupId
+            ? { ...group, last_message_at: messageTimestamp }
+            : group
+        );
+
+        // Re-sort the entire list with the new information
+        return sortGroups(updatedGroups);
+      });
+    },
+    [] // This function never needs to change
+  );
 
   // This useEffect (for fetching the *list* of groups) is unchanged
-  useEffect(() => {
-    fetchGroups();
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroups();
+    }, [context.session?.user.id])
+  );
 
+  // This useEffect (for real-time *group list* updates) is unchanged
+  useEffect(() => {
     if (!context.session?.user.id) return;
+
     supabase.realtime.setAuth(context.session?.access_token);
-    
     const channel = supabase
       .channel("chat_members_changes")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "chat_members",
           filter: `user_id=eq.${context.session.user.id}`,
         },
         (payload) => {
-          console.log("New group membership detected!", payload);
-          fetchGroups();
+          fetchGroups(); // Re-fetch all groups
         }
       )
       .subscribe();
@@ -224,10 +325,16 @@ const ChatList = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={groups}
+        data={groups} // This data is now always sorted
         keyExtractor={(item) => item.id.toString()}
-        // Use the new GroupListItem component for rendering
-        renderItem={({ item }) => <GroupListItem item={item} />}
+        renderItem={({ item }) => (
+          // 5. Pass the new callback function down as a prop
+          <GroupListItem
+            item={item}
+            userId={context.session?.user.id || ""}
+            onGroupUpdate={handleGroupUpdate}
+          />
+        )}
       />
     </View>
   );

@@ -193,7 +193,7 @@ const CameraModal = ({
           user_id: userId,
           title: newTaskTitle.trim(),
           completed: false, // Will be marked completed in handleSend
-          is_public: false, // Default to private for a quick task
+          is_public: true, 
         })
         .select("id, title") // Select fields matching the Task interface
         .single();

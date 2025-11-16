@@ -44,7 +44,6 @@ const TextMessageSentByMember = ({
 
   return (
     <View style={styles.container}>
-      {/* --- MODIFY ---: Wrap Image in TouchableOpacity */}
       <TouchableOpacity
         onPress={() => onProfilePicPress(userId, nickname, profile_pic)}
       >

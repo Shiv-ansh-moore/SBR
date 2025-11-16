@@ -236,6 +236,7 @@ const MessageView = ({ groupId }: MessageViewProps) => {
               proofId={item.proof_id} // TS now knows this is a number
               currentUserId={userId}
               senderId={item.user_id}
+              onProfilePicPress={handleProfilePicPress} // <-- ADD THIS LINE
             />
           ) : null; // Don't render anything if it's not text and has no proof_id
         }}

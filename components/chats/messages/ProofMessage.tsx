@@ -6,6 +6,7 @@ import {
   View,
   ActivityIndicator,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,6 +17,11 @@ interface ProofMessageProps {
   proofId: number;
   currentUserId: string | undefined;
   senderId: string;
+  onProfilePicPress: (
+    userId: string,
+    nickname: string,
+    profilePicPath: string | null
+  ) => void;
 }
 
 interface ProofDetails {
@@ -33,6 +39,7 @@ const ProofMessage = ({
   proofId,
   currentUserId,
   senderId,
+  onProfilePicPress,
 }: ProofMessageProps) => {
   const [proof, setProof] = useState<ProofDetails | null>(null);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
@@ -123,12 +130,23 @@ const ProofMessage = ({
   // MODIFICATION 5: Update main return to render conditionally
   return (
     <View style={isSentByYou ? styles.containerSent : styles.container}>
-      {!isSentByYou &&
-        (profilePicUrl ? (
-          <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar} />
-        ))}
+      {/* 4. WRAP AVATAR IN TOUCHABLEOPACITY AND ADD ONPRESS */}
+      {!isSentByYou && (
+        <TouchableOpacity
+          onPress={() => {
+            // Use the proof details and senderId to call the handler
+            if (proof) {
+              onProfilePicPress(senderId, proof.nickname, proof.profile_pic);
+            }
+          }}
+        >
+          {profilePicUrl ? (
+            <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar} />
+          )}
+        </TouchableOpacity>
+      )}
       <View style={isSentByYou ? styles.bubbleSent : styles.bubble}>
         {!isSentByYou && (
           <Text style={styles.nickname}>{`~\u2009${proof.nickname}`}</Text>
