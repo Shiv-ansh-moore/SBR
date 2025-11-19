@@ -270,16 +270,20 @@ const CameraModal = ({
       }
 
       // TODO Add proof to selected chats
-      if (groups && userId) {
-        for (const group of groups) {
+      if (selectedGroups.length > 0 && userId) {
+        for (const groupId of selectedGroups) {
           const { error: chatInsertError } = await supabase
             .from("chat_messages")
             .insert({
               user_id: userId,
-              group_id: group.id,
+              group_id: groupId, // Use the selected ID
               message_type: "proof",
               proof_id: proofData.id,
             });
+          
+          if (chatInsertError) {
+             console.error("Error sending to group", groupId, chatInsertError);
+          }
         }
       }
       // Reset state and close modal on success
