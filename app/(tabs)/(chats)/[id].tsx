@@ -82,11 +82,11 @@ export default function chat() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={45}
-    >
+    <KeyboardAvoidingView 
+  style={styles.container}
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+  keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 35} // Optional: Adjust if you have a notch/status bar issue
+>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -111,7 +111,6 @@ export default function chat() {
         </TouchableOpacity>
       </View>
       <View style={styles.messagesContainer}>
-        {/* Note: This component won't auto-update without real-time subscriptions */}
         <MessageView groupId={parseInt(id as string)} />
       </View>
       <View style={styles.inputButtonContainer}>

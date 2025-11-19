@@ -5,11 +5,14 @@ import { useContext, useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthProvider, { AuthContext } from "../providers/AuthProvider";
-import NotificationProvider from "@/providers/NotifactionProvider";
+import NotificationProvider, {useNotification} from "@/providers/NotifactionProvider";
+import { supabase } from "../lib/supabaseClient"; // Your supabase client
+
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isUser } = useContext(AuthContext);
   const router = useRouter();
+  const { expoPushToken } = useNotification();
   const [fontsLoaded, fontError] = useFonts({
     Bold: require("../assets/fonts/IBM_Plex_Mono/IBMPlexMono-Bold.ttf"),
     BoldItalic: require("../assets/fonts/IBM_Plex_Mono/IBMPlexMono-BoldItalic.ttf"),
@@ -26,6 +29,29 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     Thin: require("../assets/fonts/IBM_Plex_Mono/IBMPlexMono-Thin.ttf"),
     ThinItalic: require("../assets/fonts/IBM_Plex_Mono/IBMPlexMono-ThinItalic.ttf"),
   });
+
+  useEffect(() => {
+    const savePushToken = async () => {
+      if (session?.user?.id && isUser && expoPushToken) {
+        try {
+          const { error } = await supabase
+            .from('users')
+            .update({ push_token: expoPushToken })
+            .eq('id', session.user.id);
+
+          if (error) {
+            console.error("Error saving push token:", error);
+          } else {
+            console.log("Push token synced to Supabase!");
+          }
+        } catch (err) {
+          console.error("Unexpected error saving token:", err);
+        }
+      }
+    };
+
+    savePushToken();
+  }, [session, isUser, expoPushToken]);
 
   useEffect(() => {
     if (loading) return;

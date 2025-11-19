@@ -9,6 +9,8 @@ import {
   Text,
   View,
   ActivityIndicator,
+  AppState, // <-- 1. IMPORT APPSTATE
+  AppStateStatus,
 } from "react-native";
 import TextMessageSentByMember from "./TextMessageSentByMember";
 import TextMessageSentByYou from "./TextMessageSentByYou";
@@ -34,9 +36,9 @@ interface Message {
   id: number;
   created_at: string;
   message_type: string;
-  message_content: { text: string } | null; // <-- ALLOW NULL
+  message_content: { text: string } | null;
   user_id: string;
-  proof_id: number | null; // <-- ALLOW NULL
+  proof_id: number | null;
   users: UserProfile;
 }
 
@@ -45,21 +47,19 @@ const MessageView = ({ groupId }: MessageViewProps) => {
   const userId = useContext(AuthContext).session?.user.id;
   const [messages, setMessages] = useState<Message[]>([]);
   const context = useContext(AuthContext);
-
-  const [loading, setLoading] = useState(false); // To prevent multiple fetches
-  const [loadingOlder, setLoadingOlder] = useState(false); // For pagination spinner
-  const [page, setPage] = useState(0); // To track current page
-  const [allMessagesLoaded, setAllMessagesLoaded] = useState(false); // To stop fetching
-
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [page, setPage] = useState(0);
+  const [allMessagesLoaded, setAllMessagesLoaded] = useState(false);
+  const appState = useRef(AppState.currentState);
   const flatListRef = useRef<FlatList<Message>>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
   const [selectedFriendOverview, setSelectedFriendOverview] =
     useState<ProofOverview | null>(null);
-  const [selectedFriendPicUrl, setSelectedFriendPicUrl] = useState<string | null>(
-    null
-  );
+  const [selectedFriendPicUrl, setSelectedFriendPicUrl] = useState<
+    string | null
+  >(null);
 
   const FetchMessages = async () => {
     if (userId) {
@@ -75,24 +75,37 @@ const MessageView = ({ groupId }: MessageViewProps) => {
         console.log("Error fetching messages:", error);
       }
       if (data) {
-        setMessages(data as Message[]); // This cast is correct
+        setMessages(data as Message[]);
         setPage(1);
         if (data.length < PAGE_SIZE) {
-          setAllMessagesLoaded(true); // No more messages to load
+          setAllMessagesLoaded(true);
         }
       }
     }
   };
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App has come to the foreground - Refreshing messages");
+        FetchMessages();
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [groupId, userId]);
 
   const loadOlderMessages = async () => {
-    // Prevent fetching if already loading or all messages are loaded
     if (loadingOlder || allMessagesLoaded || !userId) return;
-
     setLoadingOlder(true);
-
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
     const { data, error } = await supabase
       .from("chat_messages")
       .select(
@@ -107,11 +120,8 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     }
     if (data) {
       if (data.length < PAGE_SIZE) {
-        setAllMessagesLoaded(true); // This was the last page
+        setAllMessagesLoaded(true);
       }
-
-      // Add the new (older) messages to the end of the existing array
-      // *** FIX 1: Cast data to Message[] to resolve the 'Json' type error ***
       setMessages((currentMessages) => [
         ...currentMessages,
         ...(data as Message[]),
@@ -129,19 +139,17 @@ const MessageView = ({ groupId }: MessageViewProps) => {
     setSelectedFriendId(userId);
     setSelectedFriendOverview({
       nickname: nickname,
-      profile_pic: profilePicPath || "", // Pass the path
+      profile_pic: profilePicPath || "",
     });
 
-    // Generate the public URL for the modal
     if (profilePicPath) {
       const { data: urlData } = supabase.storage
         .from("profilepic")
         .getPublicUrl(profilePicPath);
       setSelectedFriendPicUrl(urlData.publicUrl);
     } else {
-      setSelectedFriendPicUrl(null); // Or a default placeholder URL
+      setSelectedFriendPicUrl(null);
     }
-
     setModalVisible(true);
   };
 
@@ -205,11 +213,10 @@ const MessageView = ({ groupId }: MessageViewProps) => {
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id.toString()}
-        inverted // <-- ADD THIS
-        onEndReached={loadOlderMessages} // <-- ADD THIS
-        onEndReachedThreshold={0.5} // <-- ADD THIS (triggers at 50% from the end)
+        inverted
+        onEndReached={loadOlderMessages}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={() =>
-          // This will appear at the "top" of the inverted list
           loadingOlder ? (
             <ActivityIndicator size="small" style={{ margin: 10 }} />
           ) : null
@@ -218,7 +225,9 @@ const MessageView = ({ groupId }: MessageViewProps) => {
           return item.message_type === "text" ? (
             item.user_id === userId ? (
               // *** FIX 2: Add '|| ""' to handle the 'undefined' case ***
-              <TextMessageSentByYou message={item.message_content?.text || ""} />
+              <TextMessageSentByYou
+                message={item.message_content?.text || ""}
+              />
             ) : (
               // *** FIX 3: Add '|| ""' to handle the 'undefined' case ***
               <TextMessageSentByMember
@@ -227,7 +236,7 @@ const MessageView = ({ groupId }: MessageViewProps) => {
                 nickname={item.users.nickname}
                 profile_pic={item.users.profile_pic}
                 userId={item.user_id} // <-- Pass user ID
-                onProfilePicPress={handleProfilePicPress} // <-- Pass handler
+                onProfilePicPress={handleProfilePicPress}
               />
             )
           ) : // MODIFICATION: Only render ProofMessage if proof_id is not null
