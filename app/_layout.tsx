@@ -5,9 +5,10 @@ import { useContext, useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthProvider, { AuthContext } from "../providers/AuthProvider";
-import NotificationProvider, {useNotification} from "@/providers/NotifactionProvider";
+import NotificationProvider, {
+  useNotification,
+} from "@/providers/NotifactionProvider";
 import { supabase } from "../lib/supabaseClient"; // Your supabase client
-
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isUser } = useContext(AuthContext);
@@ -35,9 +36,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       if (session?.user?.id && isUser && expoPushToken) {
         try {
           const { error } = await supabase
-            .from('users')
+            .from("users")
             .update({ push_token: expoPushToken })
-            .eq('id', session.user.id);
+            .eq("id", session.user.id);
 
           if (error) {
             console.error("Error saving push token:", error);
@@ -65,7 +66,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [loading, session, isUser, router]);
 
-  if (loading) return <Text>Loading...</Text>;
+  if (loading) return <Text style={styles.loading}>Loading...</Text>;
 
   return <>{children}</>;
 }
@@ -75,6 +76,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#121212",
   },
+  loading: { fontSize: 60, color: "white" },
 });
 
 export default function RootLayout() {

@@ -1,17 +1,19 @@
 import AddGroupMembers from "@/components/chats/messages/AddGroupMembers";
 import MessageView from "@/components/chats/messages/MessageView";
-import { supabase } from "@/lib/supabaseClient"; // 1. Import supabase
-import { AuthContext } from "@/providers/AuthProvider"; // 2. Import AuthContext
+import { supabase } from "@/lib/supabaseClient";
+import { AuthContext } from "@/providers/AuthProvider";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { useContext, useState, useCallback } from "react";
+import { useContext, useState, useCallback, useEffect } from "react";
 import CameraModal from "@/components/camera/CameraModal";
+// IMPORT THE NEW COMPONENT
+import GroupSettingsModal from "@/components/chats/GroupSettingsModal"; 
 import {
-  Alert, // Import Alert for error handling
+  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -25,48 +27,49 @@ export default function chat() {
   const { id, name, pic } = useLocalSearchParams();
   const router = useRouter();
   const { session } = useContext(AuthContext);
+  
+  // --- NEW STATE FOR GROUP SETTINGS ---
   const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
-  const groupId = parseInt(id as string);
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // NEW
+  
+  const groupId = parseInt(id as string);
+  
+  // Store name/pic in local state so we can update the UI immediately after edit
+  const [currentGroupName, setCurrentGroupName] = useState(name as string);
+  const [currentGroupPic, setCurrentGroupPic] = useState<string | null>(pic as string);
+
   const [message, setMessage] = useState("");
 
-  // In (tabs)/(chats)/[id].tsx
+  // Ensure local state syncs if params change (unlikely but good practice)
+  useEffect(() => {
+      if(name) setCurrentGroupName(name as string);
+      if(pic) setCurrentGroupPic(pic as string);
+  }, [name, pic]);
 
   const markAsRead = useCallback(async () => {
     if (!session?.user || !groupId) return;
-    const { data, error, count } = await supabase // <-- Also get 'data' and 'count'
+    const { error } = await supabase
       .from("chat_members")
       .update({ last_read: new Date().toISOString() })
       .match({ user_id: session.user.id, group_id: groupId });
 
-    if (error) {
-      console.error("Error marking as read:", error);
-    }
+    if (error) console.error("Error marking as read:", error);
   }, [session?.user, groupId]);
 
-  // 4. ADD THIS: Run the function every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       markAsRead();
     }, [markAsRead])
   );
 
-  // 6. Function to handle sending the message
   const handleSendMessage = async () => {
-    if (!message.trim()) {
-      return; // Don't send empty messages
-    }
-    if (!session?.user || !id) {
-      Alert.alert(
-        "Error",
-        "Could not send message. User or group not identified."
-      );
-      return;
-    }
+    if (!message.trim()) return;
+    if (!session?.user || !id) return;
 
     const messageData = {
       user_id: session.user.id,
-      group_id: parseInt(id as string),
+      group_id: groupId,
       message_type: "text",
       message_content: { text: message.trim() },
     };
@@ -74,19 +77,24 @@ export default function chat() {
     const { error } = await supabase.from("chat_messages").insert(messageData);
 
     if (error) {
-      console.error("Error sending message:", error);
       Alert.alert("Error", "Failed to send message.");
     } else {
-      setMessage(""); // Clear the input field on successful send
+      setMessage("");
     }
   };
 
+  // --- NEW: Handler for when the group is updated in the modal ---
+  const handleGroupUpdate = (newName: string, newPic: string | null) => {
+    setCurrentGroupName(newName);
+    setCurrentGroupPic(newPic);
+  };
+
   return (
-    <KeyboardAvoidingView 
-  style={styles.container}
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
-  keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 35} // Optional: Adjust if you have a notch/status bar issue
->
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 35}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -94,15 +102,24 @@ export default function chat() {
         >
           <AntDesign name="arrowleft" size={24} color="white" />
         </TouchableOpacity>
-        {pic ? (
-          <Image style={styles.groupImage} source={pic as string} />
-        ) : (
-          <View style={[styles.groupImage, styles.placeholderContainer]}>
-            <FontAwesome name="group" size={24} color="white" />
-          </View>
-        )}
 
-        <Text style={styles.title}>{name}</Text>
+        {/* --- UPDATED: Wrap Image and Text in TouchableOpacity to open Settings --- */}
+        <TouchableOpacity 
+            style={styles.headerInfoContainer} 
+            onPress={() => setShowSettingsModal(true)}
+        >
+            {currentGroupPic ? (
+            <Image style={styles.groupImage} source={currentGroupPic} />
+            ) : (
+            <View style={[styles.groupImage, styles.placeholderContainer]}>
+                <FontAwesome name="group" size={24} color="white" />
+            </View>
+            )}
+
+            <Text style={styles.title}>{currentGroupName}</Text>
+        </TouchableOpacity>
+        {/* ----------------------------------------------------------------------- */}
+
         <TouchableOpacity
           style={styles.groupMembersContainer}
           onPress={() => setShowAddMembersModal(true)}
@@ -110,9 +127,11 @@ export default function chat() {
           <FontAwesome name="group" size={25} color="#3ECF8E" />
         </TouchableOpacity>
       </View>
+
       <View style={styles.messagesContainer}>
-        <MessageView groupId={parseInt(id as string)} />
+        <MessageView groupId={groupId} />
       </View>
+
       <View style={styles.inputButtonContainer}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -121,35 +140,22 @@ export default function chat() {
             style={styles.input}
             value={message}
             onChangeText={setMessage}
-            // Triggers the send function on keyboard submit
             onSubmitEditing={handleSendMessage}
-            // Changes the return key to "send"
             returnKeyType="send"
           />
         </View>
         <TouchableOpacity
           style={styles.proofButton}
-          onPress={() => {
-            setShowCameraModal(true);
-          }}
+          onPress={() => setShowCameraModal(true)}
         >
-          <Entypo
-            name="camera"
-            size={30}
-            color="#3ECF8E"
-            style={styles.cameraIcon}
-          />
+          <Entypo name="camera" size={30} color="#3ECF8E" style={styles.cameraIcon} />
         </TouchableOpacity>
-        {/* 9. Add onPress handler to the send button */}
         <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Ionicons
-            name="send-sharp"
-            size={30}
-            color="black"
-            style={styles.sendIcon}
-          />
+          <Ionicons name="send-sharp" size={30} color="black" style={styles.sendIcon} />
         </TouchableOpacity>
       </View>
+
+      {/* Modals */}
       <AddGroupMembers
         showModal={showAddMembersModal}
         setShowModal={setShowAddMembersModal}
@@ -159,7 +165,17 @@ export default function chat() {
         setShowCameraModal={setShowCameraModal}
         showCameraModal={showCameraModal}
         taskId={undefined}
-        groupId={parseInt(id as string)}
+        groupId={groupId}
+      />
+      
+      {/* --- NEW: Settings Modal --- */}
+      <GroupSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        groupId={groupId}
+        currentName={currentGroupName}
+        currentPic={currentGroupPic}
+        onGroupUpdated={handleGroupUpdate}
       />
     </KeyboardAvoidingView>
   );
@@ -177,6 +193,14 @@ const styles = StyleSheet.create({
     height: 60,
   },
   backButton: { marginLeft: 5, marginRight: 5 },
+  
+  // New style for the clickable header area
+  headerInfoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1, // Takes up remaining space so user can click anywhere on name/pic
+  },
+  
   title: { fontFamily: "Light", color: "white", fontSize: 16 },
   groupImage: { height: 50, width: 50, borderRadius: 25, marginRight: 10 },
   groupMembersContainer: {

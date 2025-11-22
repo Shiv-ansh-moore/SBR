@@ -1,8 +1,9 @@
+import ProgressView from "@/components/progress/ProgressView";
 import FriendProofOverViewList from "@/components/proof/FriendProofOverViewList";
 import FriendsProofList from "@/components/proof/friendsProofList";
 import React, { useRef } from "react"; // ✨ 1. Import useRef
 import {
-  Animated, // ✨ 2. Import Animated
+  Animated,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 } from "react-native";
 
 const { width } = Dimensions.get("window");
-const pages = [<FriendsProofList />, <FriendProofOverViewList />];
+const pages = [<ProgressView />,];
 
 const progress = () => {
   // ✨ 3. Create an Animated.Value to track the scroll position
@@ -98,7 +99,6 @@ export default progress;
 // import * as Notifications from 'expo-notifications';
 // import Constants from 'expo-constants';
 
-
 // Notifications.setNotificationHandler({
 //   handleNotification: async () => ({
 //     shouldPlaySound: true,
@@ -107,8 +107,6 @@ export default progress;
 //     shouldShowList: true,
 //   }),
 // });
-
-
 
 // async function sendPushNotification(expoPushToken: string) {
 //   const message = {
@@ -129,7 +127,6 @@ export default progress;
 //     body: JSON.stringify(message),
 //   });
 // }
-
 
 // function handleRegistrationError(errorMessage: string) {
 //   alert(errorMessage);
@@ -220,4 +217,3 @@ export default progress;
 //     </View>
 //   );
 // }
-

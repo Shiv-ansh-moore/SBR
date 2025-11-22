@@ -48,9 +48,9 @@ const _layout = () => {
           title: "Progress",
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
-            <FontAwesome
-              name={"group"}
-              size={35}
+            <FontAwesome6
+              name={"arrow-trend-up"}
+              size={40}
               color={color}
             />
           ),

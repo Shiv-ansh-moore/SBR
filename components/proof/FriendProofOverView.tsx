@@ -156,8 +156,6 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
           )}
         </View>
       </TouchableOpacity>
-
-      {/* ✨ Render the Modal */}
       <FriendDetailModal
         isVisible={isModalVisible}
         onClose={() => setModalVisible(false)}
