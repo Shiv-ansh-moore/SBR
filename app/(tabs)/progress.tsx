@@ -1,29 +1,26 @@
 import ProgressView from "@/components/progress/ProgressView";
 import FriendProofOverViewList from "@/components/proof/FriendProofOverViewList";
-import FriendsProofList from "@/components/proof/friendsProofList";
-import React, { useRef } from "react"; // ✨ 1. Import useRef
-import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, { useMemo, useRef } from "react";
+import { Animated, StyleSheet, View } from "react-native";
+import PagerView from "react-native-pager-view"; // Import PagerView
 
-const { width } = Dimensions.get("window");
-const pages = [<ProgressView />,];
+const pages = [<ProgressView />, <FriendProofOverViewList />];
 
-const progress = () => {
-  // ✨ 3. Create an Animated.Value to track the scroll position
-  const scrollX = useRef(new Animated.Value(0)).current;
+const ProgressScreen = () => {
+  // PagerView gives us two values: position (index 0, 1) and offset (percentage 0.0 - 1.0)
+  const position = useRef(new Animated.Value(0)).current;
+  const offset = useRef(new Animated.Value(0)).current;
+
+  // We combine them to get a smooth value: 0 -> 0.5 -> 1
+  const scrollX = useMemo(() => Animated.add(position, offset), [position, offset]);
 
   return (
     <View style={styles.container}>
       {/* Pagination Dots */}
       <View style={styles.paginationContainer}>
         {pages.map((_, i) => {
-          // ✨ 6. For each dot, create an interpolation
-          const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+          // Logic Updated: PagerView works on Index (0, 1), not Width (pixels)
+          const inputRange = [i - 1, i, i + 1];
 
           const dotWidth = scrollX.interpolate({
             inputRange,
@@ -37,7 +34,6 @@ const progress = () => {
             extrapolate: "clamp",
           });
 
-          // Use Animated.View and apply the animated styles
           return (
             <Animated.View
               key={i.toString()}
@@ -47,23 +43,23 @@ const progress = () => {
         })}
       </View>
 
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        // ✨ 4. Use onScroll to update scrollX in real-time
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+      {/* Replaced ScrollView with PagerView */}
+      <PagerView
+        style={styles.pagerView}
+        initialPage={0}
+        // This maps the native event to our animated values
+        onPageScroll={Animated.event(
+          [{ nativeEvent: { position: position, offset: offset } }],
           { useNativeDriver: false }
         )}
-        scrollEventThrottle={16}
       >
         {pages.map((page, i) => (
-          <View style={styles.page} key={i}>
+          // PagerView requires a key for direct children View
+          <View style={styles.page} key={i.toString()}>
             {page}
           </View>
         ))}
-      </ScrollView>
+      </PagerView>
     </View>
   );
 };
@@ -71,14 +67,17 @@ const progress = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212",
+    backgroundColor: "#171717", // Matches your theme
+  },
+  pagerView: {
+    flex: 1,
   },
   page: {
-    width: width,
-    flex: 1,
+    flex: 1, // Ensures content fills the page
   },
   paginationContainer: {
     marginTop: 20,
+    marginBottom: 10, // Added a little bottom margin
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -86,134 +85,9 @@ const styles = StyleSheet.create({
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#FFF", // ✨ 5. Use a single color
+    backgroundColor: "#FFF",
     marginHorizontal: 5,
   },
 });
 
-export default progress;
-
-// import { useState, useEffect, useRef } from 'react';
-// import { Text, View, Button, Platform } from 'react-native';
-// import * as Device from 'expo-device';
-// import * as Notifications from 'expo-notifications';
-// import Constants from 'expo-constants';
-
-// Notifications.setNotificationHandler({
-//   handleNotification: async () => ({
-//     shouldPlaySound: true,
-//     shouldSetBadge: true,
-//     shouldShowBanner: true,
-//     shouldShowList: true,
-//   }),
-// });
-
-// async function sendPushNotification(expoPushToken: string) {
-//   const message = {
-//     to: expoPushToken,
-//     sound: 'default',
-//     title: 'Original Title',
-//     body: 'And here is the body!',
-//     data: { someData: 'goes here' },
-//   };
-
-//   await fetch('https://exp.host/--/api/v2/push/send', {
-//     method: 'POST',
-//     headers: {
-//       Accept: 'application/json',
-//       'Accept-encoding': 'gzip, deflate',
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify(message),
-//   });
-// }
-
-// function handleRegistrationError(errorMessage: string) {
-//   alert(errorMessage);
-//   throw new Error(errorMessage);
-// }
-
-// async function registerForPushNotificationsAsync() {
-//   if (Platform.OS === 'android') {
-//     await Notifications.setNotificationChannelAsync('default', {
-//       name: 'default',
-//       importance: Notifications.AndroidImportance.MAX,
-//       vibrationPattern: [0, 250, 250, 250],
-//       lightColor: '#FF231F7C',
-//     });
-//   }
-
-//   if (Device.isDevice) {
-//     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-//     let finalStatus = existingStatus;
-//     if (existingStatus !== 'granted') {
-//       const { status } = await Notifications.requestPermissionsAsync();
-//       finalStatus = status;
-//     }
-//     if (finalStatus !== 'granted') {
-//       handleRegistrationError('Permission not granted to get push token for push notification!');
-//       return;
-//     }
-//     const projectId =
-//       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-//     if (!projectId) {
-//       handleRegistrationError('Project ID not found');
-//     }
-//     try {
-//       const pushTokenString = (
-//         await Notifications.getExpoPushTokenAsync({
-//           projectId,
-//         })
-//       ).data;
-//       console.log(pushTokenString);
-//       return pushTokenString;
-//     } catch (e: unknown) {
-//       handleRegistrationError(`${e}`);
-//     }
-//   } else {
-//     handleRegistrationError('Must use physical device for push notifications');
-//   }
-// }
-
-// export default function App() {
-//   const [expoPushToken, setExpoPushToken] = useState('');
-//   const [notification, setNotification] = useState<Notifications.Notification | undefined>(
-//     undefined
-//   );
-
-//   useEffect(() => {
-//     registerForPushNotificationsAsync()
-//       .then(token => setExpoPushToken(token ?? ''))
-//       .catch((error: any) => setExpoPushToken(`${error}`));
-
-//     const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-//       setNotification(notification);
-//     });
-
-//     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-//       console.log(response);
-//     });
-
-//     return () => {
-//       notificationListener.remove();
-//       responseListener.remove();
-//     };
-//   }, []);
-
-//   return (
-//     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'space-around' }}>
-//       <Text>Your Expo push token: {expoPushToken}</Text>
-//       <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-//         <Text>Title: {notification && notification.request.content.title} </Text>
-//         <Text>Body: {notification && notification.request.content.body}</Text>
-//         <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
-//       </View>
-//       <Button
-//         title="Press to Send Notification"
-//         onPress={async () => {
-//           await sendPushNotification(expoPushToken);
-//         }}
-//       />
-//     </View>
-//   );
-// }
+export default ProgressScreen;
