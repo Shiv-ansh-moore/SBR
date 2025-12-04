@@ -32,7 +32,7 @@ interface Goal {
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 60) / 2;
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 6;
 
 const Progress = () => {
   const context = useContext(AuthContext);
