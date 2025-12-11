@@ -2,7 +2,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { AuthContext } from "@/providers/AuthProvider";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ProgressItem from "./ProgressItem";
-import React, { useContext, useEffect, useState } from "react";
+import ProgressItemModal from "./ProgressItemModal";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,11 +15,11 @@ import {
   Dimensions,
 } from "react-native";
 
-// --- Types ---
 interface ProofItem {
   id: number;
   created_at: string;
   proof_media: string | null;
+  signedUrl?: string | null;
   proof_type: string;
   task_title: string;
   goal_title: string;
@@ -38,15 +39,16 @@ const Progress = () => {
   const context = useContext(AuthContext);
   const userId = context.session?.user.id;
 
-  // Data State
   const [proofs, setProofs] = useState<ProofItem[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
-
-  // Filter & Sort State
+  const [selectedProof, setSelectedProof] = useState<ProofItem | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  
+  // Filter & Sort
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [sortAscending, setSortAscending] = useState<boolean>(false);
 
-  // Pagination State
+  // Pagination
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -71,12 +73,16 @@ const Progress = () => {
     if (!userId) return;
     if (!isReset && (!hasMore || loadingMore)) return;
 
-    if (isReset) setLoading(true);
-    else setLoadingMore(true);
+    if (isReset) {
+      setLoading(true);
+      setProofs([]); 
+    } else {
+      setLoadingMore(true);
+    }
 
-    const { data, error } = await supabase.rpc("get_user_proofs_for_progress", {
+    const { data: rawData, error } = await supabase.rpc("get_user_proofs_for_progress", {
       p_user_id: userId,
-      p_goal_id: selectedGoalId ?? undefined, // Fix for null vs undefined
+      p_goal_id: selectedGoalId ?? undefined,
       p_sort_asc: sortAscending,
       p_limit: PAGE_SIZE,
       p_offset: currentOffset,
@@ -84,13 +90,47 @@ const Progress = () => {
 
     if (error) {
       console.error("Error fetching proofs:", error);
-    } else if (data) {
-      if (isReset) {
-        setProofs(data);
-      } else {
-        setProofs((prev) => [...prev, ...data]);
+      setLoading(false);
+      setLoadingMore(false);
+      return;
+    }
+
+    if (rawData && rawData.length > 0) {
+      // Client-Side Batch Signing
+      const pathsToSign = rawData
+        .map((p: ProofItem) => p.proof_media)
+        .filter((path: string | null): path is string => !!path);
+
+      let signedMap: Record<string, string> = {};
+
+      if (pathsToSign.length > 0) {
+        const { data: signedData } = await supabase.storage
+          .from("proof-media")
+          .createSignedUrls(pathsToSign, 3600);
+        
+        if (signedData) {
+          signedData.forEach((item) => {
+            if (item.path && item.signedUrl) {
+              signedMap[item.path] = item.signedUrl;
+            }
+          });
+        }
       }
-      setHasMore(data.length === PAGE_SIZE);
+
+      const proofsWithUrls = rawData.map((item: ProofItem) => ({
+        ...item,
+        signedUrl: item.proof_media ? signedMap[item.proof_media] : null,
+      }));
+
+      if (isReset) {
+        setProofs(proofsWithUrls);
+      } else {
+        setProofs((prev) => [...prev, ...proofsWithUrls]);
+      }
+      setHasMore(rawData.length === PAGE_SIZE);
+    } else if (isReset) {
+      setProofs([]);
+      setHasMore(false);
     }
 
     setLoading(false);
@@ -118,16 +158,13 @@ const Progress = () => {
     fetchProofs(0, true);
   };
 
-  // --- Render Functions ---
+  // --- OPTIMIZED RENDER FUNCTIONS (Fixes the bugs) ---
 
-  // 1. THIS IS NEW: The Header Component
-  // Contains Title, Sort Button, and Filter List
-  const renderHeader = () => (
+  // 1. Fixes "Filter gets stuck"
+  const renderHeader = useCallback(() => (
     <View>
       <Text style={styles.headerTitle}>Progress Gallery</Text>
-
       <View style={styles.controlsContainer}>
-        {/* Sort Button */}
         <TouchableOpacity
           style={styles.sortButton}
           onPress={() => setSortAscending(!sortAscending)}
@@ -142,7 +179,6 @@ const Progress = () => {
           </Text>
         </TouchableOpacity>
 
-        {/* Filter List (Horizontal FlatList inside Header is OK) */}
         <FlatList
           horizontal
           data={[{ id: -1, title: "All" }, ...goals]}
@@ -179,87 +215,101 @@ const Progress = () => {
         />
       </View>
     </View>
-  );
+  ), [goals, selectedGoalId, sortAscending]); // Only update when these change
 
-  const renderProofItem = ({ item }: { item: ProofItem }) => {
-    const dateObj = new Date(item.created_at);
-    const formattedDate = dateObj.toLocaleDateString();
+  // 2. Fixes "Loading wheel resets"
+  const renderEmpty = useCallback(() => {
+      if (loading) {
+          return (
+            <View style={styles.centerLoader}>
+                <ActivityIndicator size="large" color="#3ECF8E" />
+            </View>
+          );
+      }
+      return <Text style={styles.emptyText}>No proofs found.</Text>;
+  }, [loading]);
 
-    return (
-      <ProgressItem
-        mediaPath={item.proof_media}
-        itemWidth={ITEM_WIDTH}
-        taskTitle={item.task_title}
-        goalTitle={item.goal_title}
-        date={formattedDate}
-      />
-    );
-  };
-
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (!loadingMore) return <View style={{ height: 50 }} />;
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color="#3ECF8E" />
       </View>
     );
-  };
+  }, [loadingMore]);
 
-  // --- Main Return ---
+  const renderProofItem = useCallback(({ item }: { item: ProofItem }) => {
+    const dateObj = new Date(item.created_at);
+    const formattedDate = dateObj.toLocaleDateString();
+
+    return (
+      <ProgressItem
+        signedUrl={item.signedUrl ?? null}
+        itemWidth={ITEM_WIDTH}
+        taskTitle={item.task_title}
+        goalTitle={item.goal_title}
+        date={formattedDate}
+        onPress={() => {
+            setSelectedProof(item);
+            setIsModalVisible(true);
+        }}
+      />
+    );
+  }, [ITEM_WIDTH]);
+
+
   return (
     <View style={styles.container}>
-      {/* The Main FlatList now handles EVERYTHING.
-         No ScrollView is wrapping this.
-      */}
-      {loading && !refreshing ? (
-        // Show loader for initial load (centering logic needs view)
-        <View style={styles.centerLoader}>
-             <ActivityIndicator size="large" color="#3ECF8E" />
-        </View>
-      ) : (
-        <FlatList
-          data={proofs}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderProofItem}
-          numColumns={2}
-          contentContainerStyle={styles.gridContent}
-          columnWrapperStyle={styles.columnWrapper}
-          
-          // Header Component passed here
-          ListHeaderComponent={renderHeader} 
-          
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={renderFooter}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#3ECF8E"
-            />
-          }
-          ListEmptyComponent={
-             // Empty state needs to be below header, so it works perfectly here
-            <Text style={styles.emptyText}>No proofs found.</Text>
-          }
-        />
-      )}
+      <FlatList
+        data={proofs}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderProofItem}
+        numColumns={2}
+        contentContainerStyle={styles.gridContent}
+        columnWrapperStyle={styles.columnWrapper}
+        
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#3ECF8E"
+          />
+        }
+      />
+
+      <ProgressItemModal
+        isVisible={isModalVisible}
+        proofItem={selectedProof}
+        onClose={() => {
+            setIsModalVisible(false);
+            setSelectedProof(null);
+        }}
+        onDelete={(id) => {
+            setProofs((prev) => prev.filter((p) => p.id !== id));
+        }}
+      />
     </View>
   );
 };
 
 export default Progress;
 
-// --- Styles ---
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Vital: Ensures the list takes up full screen height
+    flex: 1,
     paddingTop: 20,
   },
   centerLoader: {
-    flex: 1,
+    paddingVertical: 50,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
   headerTitle: {
     fontFamily: "SemiBold",
@@ -320,47 +370,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 50,
     fontFamily: "Light",
-  },
-  cardContainer: {
-    width: ITEM_WIDTH,
-    backgroundColor: "#242424",
-    borderRadius: 15,
-    marginBottom: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(77, 61, 61, 0.50)",
-  },
-  cardImage: {
-    width: "100%",
-    height: ITEM_WIDTH,
-  },
-  placeholderImage: {
-    backgroundColor: "#1e1e1e",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardInfo: {
-    padding: 10,
-  },
-  goalText: {
-    color: "#3ECF8E",
-    fontSize: 10,
-    fontFamily: "Bold",
-    textTransform: "uppercase",
-    marginBottom: 2,
-  },
-  taskTitle: {
-    color: "white",
-    fontSize: 14,
-    fontFamily: "Regular",
-    marginBottom: 5,
-    height: 38,
-  },
-  dateText: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 11,
-    fontFamily: "Light",
-    alignSelf: "flex-end",
   },
   footerLoader: {
     paddingVertical: 20,

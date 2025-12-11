@@ -1,77 +1,45 @@
-import { supabase } from "@/lib/supabaseClient";
 import AntDesign from "@expo/vector-icons/AntDesign";
-// FIX: Switch back to React Native Image for stability first
-import { Image, ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
 
 interface ProgressItemProps {
-  mediaPath: string | null;
+  signedUrl: string | null;
   itemWidth: number;
   taskTitle: string;
   goalTitle: string;
   date: string;
+  onPress: () => void;
 }
 
 const ProgressItem = ({
-  mediaPath,
+  signedUrl,
   itemWidth,
   taskTitle,
   goalTitle,
   date,
+  onPress,
 }: ProgressItemProps) => {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [imageError, setImageError] = useState(false); // Track if image fails to load
-
-  useEffect(() => {
-    const fetchSignedUrl = async () => {
-      // Reset state on reuse
-      setLoading(true); 
-      setImageError(false);
-      setSignedUrl(null);
-
-      if (!mediaPath) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase.storage
-        .from("proof-media")
-        .createSignedUrl(mediaPath, 3600);
-
-      if (error) {
-        console.log("Error signing URL:", error.message);
-        setLoading(false);
-      } else if (data) {
-        // console.log("Generated URL:", data.signedUrl); // Uncomment to debug
-        setSignedUrl(data.signedUrl);
-        setLoading(false);
-      }
-    };
-
-    fetchSignedUrl();
-  }, [mediaPath]);
+  const [imageError, setImageError] = useState(false);
 
   return (
-    <View style={[styles.cardContainer, { width: itemWidth }]}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onPress}
+      style={[styles.cardContainer, { width: itemWidth }]}
+    >
       {/* Image Section */}
       <View style={{ height: itemWidth, width: itemWidth, backgroundColor: "#1e1e1e" }}>
-        {loading ? (
-          <View style={[styles.center, { height: itemWidth }]}>
-            <ActivityIndicator color="#3ECF8E" />
-          </View>
-        ) : signedUrl && !imageError ? (
+        {signedUrl && !imageError ? (
           <Image
             source={{ uri: signedUrl }}
             style={{ height: itemWidth, width: itemWidth }}
             resizeMode="cover"
             onError={(e) => {
-                console.log("Image Load Error:", e.nativeEvent.error);
-                setImageError(true);
+              console.log("Image Load Error:", e.nativeEvent.error);
+              setImageError(true);
             }}
           />
         ) : (
-          // Show placeholder if Loading is done AND (No URL OR Image Error)
           <View style={[styles.center, { height: itemWidth }]}>
             <AntDesign name="picture" size={40} color="rgba(255,255,255,0.3)" />
           </View>
@@ -88,7 +56,7 @@ const ProgressItem = ({
         </Text>
         <Text style={styles.dateText}>{date}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
