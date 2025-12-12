@@ -1,19 +1,19 @@
 import { supabase } from "@/lib/supabaseClient";
-import { AuthContext } from "@/providers/AuthProvider"; // 1. Import AuthContext
-import AntDesign from "@expo/vector-icons/AntDesign"; // 2. Icons
+import { AuthContext } from "@/providers/AuthProvider";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
+  Image as RNImage, // 1. Alias RN Image for the getSize utility
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import CommentModal from "./CommentModal"; // 3. Import Modal
+import { Image } from "expo-image"; // 2. Import Expo Image
+import CommentModal from "./CommentModal";
 
-// 4. Update Interface to include stats
 interface ProofWithDetails {
   id: number;
   created_at: string;
@@ -23,7 +23,7 @@ interface ProofWithDetails {
   task_owner_id: string;
   profile_pic: string;
   nickname: string;
-  like_count?: number; // Optional because initial fetch might not have it
+  like_count?: number;
   comment_count?: number;
   user_has_liked?: boolean;
 }
@@ -33,24 +33,23 @@ interface FriendProofProps {
 }
 
 const FriendProof = ({ proof }: FriendProofProps) => {
-  const { session } = useContext(AuthContext); // Get current user
+  const { session } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [profilePicLink, setProfilePicLink] = useState<string | null>(null);
   const [imageAspectRatio, setImageAspectRatio] = useState(1);
 
-  // 5. Interaction State
+  // Interaction State
   const [isLiked, setIsLiked] = useState(proof.user_has_liked || false);
   const [likeCount, setLikeCount] = useState(proof.like_count || 0);
   const [commentCount, setCommentCount] = useState(proof.comment_count || 0);
   const [showComments, setShowComments] = useState(false);
 
-  // --- Fetch initial stats if not provided by parent query ---
+  // --- Fetch initial stats ---
   useEffect(() => {
     const fetchStats = async () => {
       if (!session?.user.id) return;
 
-      // Check if user liked this proof
       const { data: likeData } = await supabase
         .from("proof_likes")
         .select("*")
@@ -60,12 +59,11 @@ const FriendProof = ({ proof }: FriendProofProps) => {
 
       setIsLiked(!!likeData);
 
-      // Get counts
       const { count: lCount } = await supabase
         .from("proof_likes")
         .select("*", { count: "exact", head: true })
         .eq("proof_id", proof.id);
-        
+
       const { count: cCount } = await supabase
         .from("proof_comments")
         .select("*", { count: "exact", head: true })
@@ -78,7 +76,7 @@ const FriendProof = ({ proof }: FriendProofProps) => {
     fetchStats();
   }, [proof.id, session?.user.id]);
 
-  // --- Image Fetching (Existing Code) ---
+  // --- Image Fetching ---
   useEffect(() => {
     const fetchMedia = async () => {
       if (proof.profile_pic) {
@@ -101,7 +99,9 @@ const FriendProof = ({ proof }: FriendProofProps) => {
         } else if (data?.signedUrl) {
           const url = data.signedUrl;
           setSignedUrl(url);
-          Image.getSize(
+          
+          // 3. Use RNImage here solely for calculating size before render
+          RNImage.getSize(
             url,
             (width, height) => {
               if (height > 0) setImageAspectRatio(width / height);
@@ -120,11 +120,10 @@ const FriendProof = ({ proof }: FriendProofProps) => {
     fetchMedia();
   }, [proof.proof_media, proof.profile_pic]);
 
-  // 6. Handle Like Toggle
+  // Handle Like Toggle
   const handleLike = async () => {
     if (!session?.user.id) return;
 
-    // Optimistic Update
     const previousState = isLiked;
     const previousCount = likeCount;
     setIsLiked(!isLiked);
@@ -132,21 +131,18 @@ const FriendProof = ({ proof }: FriendProofProps) => {
 
     try {
       if (isLiked) {
-        // Unlike
         await supabase
           .from("proof_likes")
           .delete()
           .eq("user_id", session.user.id)
           .eq("proof_id", proof.id);
       } else {
-        // Like
         await supabase.from("proof_likes").insert({
           user_id: session.user.id,
           proof_id: proof.id,
         });
       }
     } catch (error) {
-      // Revert if error
       setIsLiked(previousState);
       setLikeCount(previousCount);
       console.error(error);
@@ -157,7 +153,13 @@ const FriendProof = ({ proof }: FriendProofProps) => {
     <View style={styles.container}>
       <View style={styles.header}>
         {profilePicLink ? (
-          <Image source={{ uri: profilePicLink }} style={styles.avatar} />
+          // 4. Updated Profile Pic to Expo Image
+          <Image 
+            source={profilePicLink} 
+            style={styles.avatar} 
+            contentFit="cover"
+            transition={500}
+          />
         ) : (
           <View style={styles.avatar} />
         )}
@@ -168,9 +170,12 @@ const FriendProof = ({ proof }: FriendProofProps) => {
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : signedUrl ? (
+          // 5. Updated Main Proof Image to Expo Image
           <Image
-            source={{ uri: signedUrl }}
+            source={signedUrl}
             style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
+            contentFit="cover"
+            transition={500} // Adds a smooth fade-in
           />
         ) : (
           <Text style={styles.noImageText}>No image provided</Text>
@@ -178,43 +183,40 @@ const FriendProof = ({ proof }: FriendProofProps) => {
       </View>
 
       <View style={styles.bottomContainer}>
-        {/* Title & Date */}
         <View style={styles.infoRow}>
-            <View style={{flex: 1}}>
-                <Text style={styles.taskTitle}>{proof.task_title}</Text>
-                <Text style={styles.timestamp}>
-                {new Date(proof.created_at).toLocaleString()}
-                </Text>
-            </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.taskTitle}>{proof.task_title}</Text>
+            <Text style={styles.timestamp}>
+              {new Date(proof.created_at).toLocaleString()}
+            </Text>
+          </View>
         </View>
 
-        {/* 7. Action Buttons Row */}
         <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-                <AntDesign 
-                    name={isLiked ? "heart" : "hearto"} 
-                    size={24} 
-                    color={isLiked ? "#E53E3E" : "white"} 
-                />
-                <Text style={styles.actionText}>{likeCount}</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+            <AntDesign
+              name={isLiked ? "heart" : "hearto"}
+              size={24}
+              color={isLiked ? "#E53E3E" : "white"}
+            />
+            <Text style={styles.actionText}>{likeCount}</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity 
-                style={styles.actionButton} 
-                onPress={() => setShowComments(true)}
-            >
-                <FontAwesome name="comment-o" size={24} color="white" />
-                <Text style={styles.actionText}>{commentCount}</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowComments(true)}
+          >
+            <FontAwesome name="comment-o" size={24} color="white" />
+            <Text style={styles.actionText}>{commentCount}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* 8. Render Modal */}
-      <CommentModal 
+      <CommentModal
         isVisible={showComments}
         onClose={() => setShowComments(false)}
         proofId={proof.id}
-        onCommentAdded={() => setCommentCount(prev => prev + 1)}
+        onCommentAdded={() => setCommentCount((prev) => prev + 1)}
       />
     </View>
   );
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    padding: 10, // Added padding for better spacing
+    padding: 10,
   },
   infoRow: {
     marginBottom: 10,
@@ -285,11 +287,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: "ExtraLight",
   },
-  // New Styles for Actions
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 20, // Space between like and comment buttons
+    gap: 20,
   },
   actionButton: {
     flexDirection: "row",

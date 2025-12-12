@@ -1,10 +1,15 @@
 import PersonalTasks from "@/components/personalTasks/PersonalTasks";
+import FriendProofOverViewList from "@/components/proof/FriendProofOverViewList";
 import FriendsProofList from "@/components/proof/friendsProofList";
 import React, { useMemo, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import PagerView from "react-native-pager-view";
 
-const pages = [<PersonalTasks />, <FriendsProofList />];
+const pages = [
+  <PersonalTasks />,
+  <FriendsProofList />,
+  <FriendProofOverViewList />,
+];
 
 const HomeScreen = () => {
   // PagerView uses Position (Index) and Offset (Percentage)

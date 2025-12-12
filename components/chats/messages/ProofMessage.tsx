@@ -1,13 +1,14 @@
 // ProofMessage.tsx
 // removed resize was makeing the images look wierd when initally loading causing the auto scroller not to work
 import {
+  ActivityIndicator,
+  Image as RNImage, // Alias RN Image in case you need getSize back later
   StyleSheet,
   Text,
-  View,
-  ActivityIndicator,
-  Image,
   TouchableOpacity,
+  View,
 } from "react-native";
+import { Image } from "expo-image"; // 1. Import Expo Image
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { AntDesign } from "@expo/vector-icons";
@@ -141,7 +142,13 @@ const ProofMessage = ({
           }}
         >
           {profilePicUrl ? (
-            <Image source={{ uri: profilePicUrl }} style={styles.avatar} />
+            // 2. Update Avatar to Expo Image
+            <Image
+              source={profilePicUrl}
+              style={styles.avatar}
+              contentFit="cover"
+              transition={500}
+            />
           ) : (
             <View style={styles.avatar} />
           )}
@@ -154,9 +161,12 @@ const ProofMessage = ({
 
         {proofMediaUrl && (
           <View style={styles.imageContainer}>
+            {/* 3. Update Proof Media to Expo Image */}
             <Image
-              source={{ uri: proofMediaUrl }}
+              source={proofMediaUrl}
               style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
+              contentFit="cover"
+              transition={500}
             />
           </View>
         )}

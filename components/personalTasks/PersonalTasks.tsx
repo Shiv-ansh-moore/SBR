@@ -270,7 +270,7 @@ export default PersonalTasks;
 // Styles remain unchanged...
 const styles = StyleSheet.create({
   container: {
-    height: "90%",
+    height: "93%",
     width: "90%",
     borderWidth: 1,
     borderColor: "rgba(77, 61, 61, 0.50)",

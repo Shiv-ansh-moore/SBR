@@ -6,20 +6,21 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image,
+  Image as RNImage, // 1. Alias RN Image for aspect ratio calculation
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image"; // 2. Import Expo Image
 
 // 1. FIXED INTERFACE: Matches Progress.tsx exactly now
 interface ProofItem {
   id: number;
   created_at: string;
   proof_media: string | null;
-  signedUrl?: string | null; // <--- Changed from signed_url to signedUrl
+  signedUrl?: string | null;
   proof_type: string;
   task_title: string;
   goal_title: string;
@@ -47,7 +48,8 @@ const ProgressItemModal = ({
   // 2. FIXED: Use proofItem.signedUrl (camelCase)
   useEffect(() => {
     if (isVisible && proofItem?.signedUrl) {
-      Image.getSize(
+      // Use RNImage solely for calculating dimensions
+      RNImage.getSize(
         proofItem.signedUrl,
         (w, h) => {
           if (h > 0) setImageAspectRatio(w / h);
@@ -126,15 +128,16 @@ const ProgressItemModal = ({
 
           {/* Image Area */}
           <View style={styles.imageContainer}>
-            {/* 3. FIXED: Use proofItem.signedUrl */}
+            {/* 3. Updated to Expo Image */}
             {proofItem.signedUrl ? (
               <Image
-                source={{ uri: proofItem.signedUrl }}
+                source={proofItem.signedUrl}
                 style={[
                   styles.proofImage,
                   { aspectRatio: imageAspectRatio > 0 ? imageAspectRatio : 1 },
                 ]}
-                resizeMode="contain"
+                contentFit="contain" // Replaces resizeMode="contain"
+                transition={500}
               />
             ) : (
               <View style={styles.loaderContainer}>

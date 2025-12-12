@@ -1,14 +1,15 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Fragment, useEffect, useState } from "react"; // ✨ Import Fragment
+import { Image } from "expo-image"; // 1. Import Expo Image
+import { Fragment, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
+  Image as RNImage, // 2. Alias RN Image for size calculation
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import FriendDetailModal from "./FriendDetailModal"; // ✨ Import the new modal
+import FriendDetailModal from "./FriendDetailModal";
 
 // --- Interfaces and Data Fetching (no change) ---
 interface FriendProofOverViewProps {
@@ -45,9 +46,9 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
   const [proofMediaLink, setProofMediaLink] = useState<string | null>(null);
   const [mediaLoading, setMediaLoading] = useState(true);
   const [imageAspectRatio, setImageAspectRatio] = useState(1);
-  const [isModalVisible, setModalVisible] = useState(false); // ✨ Add modal state
+  const [isModalVisible, setModalVisible] = useState(false);
 
-  // --- useEffect hooks (no change) ---
+  // --- useEffect hooks ---
   useEffect(() => {
     const fetchData = async () => {
       setDataLoading(true);
@@ -66,6 +67,8 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
         return;
       }
       setMediaLoading(true);
+      
+      // Fetch Profile Pic
       if (overview.profile_pic) {
         const { data: profileUrlData } = supabase.storage
           .from("profilepic")
@@ -74,10 +77,13 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
       } else {
         setProfilePicLink(null);
       }
+
+      // Fetch Proof Media
       if (overview.proof_media) {
         const { data, error } = await supabase.storage
           .from("proof-media")
           .createSignedUrl(overview.proof_media, 1800);
+
         if (error) {
           console.error("Error creating signed URL:", error.message);
           setProofMediaLink(null);
@@ -85,7 +91,9 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
         } else if (data?.signedUrl) {
           const url = data.signedUrl;
           setProofMediaLink(url);
-          Image.getSize(
+          
+          // 3. Use RNImage.getSize for aspect ratio calculation
+          RNImage.getSize(
             url,
             (width, height) => {
               if (height > 0) setImageAspectRatio(width / height);
@@ -119,16 +127,19 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
   }
 
   return (
-    // ✨ Use Fragment to return multiple elements
     <Fragment>
       <TouchableOpacity
         style={styles.container}
-        onPress={() => setModalVisible(true)} // ✨ Open modal on press
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.9}
       >
         {proofMediaLink && !mediaLoading ? (
+          // 4. Updated Main Proof Image
           <Image
-            source={{ uri: proofMediaLink }}
+            source={proofMediaLink}
             style={[styles.proofImage, { aspectRatio: imageAspectRatio }]}
+            contentFit="cover"
+            transition={500}
           />
         ) : (
           <View style={styles.placeholderContainer}>
@@ -152,10 +163,17 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
           </View>
 
           {profilePicLink && (
-            <Image source={{ uri: profilePicLink }} style={styles.profilePic} />
+            // 5. Updated Profile Pic Image
+            <Image 
+                source={profilePicLink} 
+                style={styles.profilePic} 
+                contentFit="cover"
+                transition={500}
+            />
           )}
         </View>
       </TouchableOpacity>
+      
       <FriendDetailModal
         isVisible={isModalVisible}
         onClose={() => setModalVisible(false)}
@@ -169,7 +187,6 @@ const FriendProofOverView = ({ friendId }: FriendProofOverViewProps) => {
 
 export default FriendProofOverView;
 
-// --- Styles (no change) ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -194,7 +211,7 @@ const styles = StyleSheet.create({
   },
   proofImage: {
     width: "100%",
-    resizeMode: "cover",
+    // resizeMode removed here as it is now handled by contentFit prop
   },
   infoOverlay: {
     position: "absolute",

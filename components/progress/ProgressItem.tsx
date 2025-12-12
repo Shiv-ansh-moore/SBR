@@ -1,6 +1,7 @@
 import AntDesign from "@expo/vector-icons/AntDesign";
-import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { Image } from "expo-image"; // 1. Import from expo-image
 import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"; // 2. Remove Image from RN
 
 interface ProgressItemProps {
   signedUrl: string | null;
@@ -28,20 +29,31 @@ const ProgressItem = ({
       style={[styles.cardContainer, { width: itemWidth }]}
     >
       {/* Image Section */}
-      <View style={{ height: itemWidth, width: itemWidth, backgroundColor: "#1e1e1e" }}>
+      <View
+        style={{
+          height: itemWidth,
+          width: itemWidth,
+          backgroundColor: "#1e1e1e",
+        }}
+      >
         {signedUrl && !imageError ? (
           <Image
-            source={{ uri: signedUrl }}
+            source={signedUrl}
             style={{ height: itemWidth, width: itemWidth }}
-            resizeMode="cover"
+            contentFit="cover" // 3. Replaces resizeMode
+            transition={500}   // 4. Smooth fade in
             onError={(e) => {
-              console.log("Image Load Error:", e.nativeEvent.error);
+              console.log("Image Load Error:", e.error);
               setImageError(true);
             }}
           />
         ) : (
           <View style={[styles.center, { height: itemWidth }]}>
-            <AntDesign name="picture" size={40} color="rgba(255,255,255,0.3)" />
+            <AntDesign
+              name="picture"
+              size={40}
+              color="rgba(255,255,255,0.3)"
+            />
           </View>
         )}
       </View>

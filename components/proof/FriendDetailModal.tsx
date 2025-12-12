@@ -1,18 +1,18 @@
 // components/social/FriendDetailModal.js
 import { supabase } from "@/lib/supabaseClient";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image"; // 1. Import Expo Image
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import FriendProof from "./FriendProof"; // Assuming FriendProof is in the same folder
+} from "react-native"; // 2. Remove Image from RN import
+import FriendProof from "./FriendProof";
 
 // --- Interfaces ---
 interface ProofWithDetails {
@@ -109,9 +109,12 @@ const FriendDetailModal = ({
           <View style={styles.header}>
             <View style={styles.headerInfo}>
               {profilePicLink && (
+                // 3. Updated Profile Pic to Expo Image
                 <Image
-                  source={{ uri: profilePicLink }}
+                  source={profilePicLink}
                   style={styles.profilePic}
+                  contentFit="cover"
+                  transition={500}
                 />
               )}
               <Text style={styles.nicknameText}>{initialOverview?.nickname}</Text>
